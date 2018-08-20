@@ -17,8 +17,7 @@
  *
  ******************************************************************************/
 #include "android_logmsg.h"
-#include <stdio.h>
-
+#include "halcore.h"
 
 void DispHal(const char* title, const void* data, size_t length);
 unsigned char hal_trace_level = STNFC_TRACE_LEVEL_DEBUG;
@@ -44,11 +43,18 @@ unsigned char hal_trace_level = STNFC_TRACE_LEVEL_DEBUG;
 *******************************************************************************/
 unsigned char InitializeSTLogLevel() {
   unsigned long num = 0;
+  char valueStr[PROPERTY_VALUE_MAX] = {0};
 
   num = 1;
   if (GetNumValue(NAME_STNFC_HAL_LOGLEVEL, &num, sizeof(num)))
     hal_trace_level = (unsigned char)num;
 
+  int len = property_get("nfc.st_hal_log_level", valueStr, "");
+  if (len > 0) {
+    // let Android property override default value
+    sscanf(valueStr, "%lu", &num);
+    hal_trace_level = (unsigned char)num;
+  }
   STLOG_HAL_D("%s: level=%u", __func__, hal_trace_level);
   return hal_trace_level;
 }

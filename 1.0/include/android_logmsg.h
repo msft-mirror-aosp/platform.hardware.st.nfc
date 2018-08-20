@@ -34,9 +34,6 @@ extern "C" {
 
 extern unsigned char hal_trace_level;
 extern int GetNumValue(const char* name, void* p_value, unsigned long len);
-extern int GetByteArrayValue(const char* name, char* pValue,
-                                    long bufflen, long* len);
-extern int GetStrValue(const char* name, char* pValue, unsigned long l);
 
 /* #######################
 * Set the log module name in .conf file

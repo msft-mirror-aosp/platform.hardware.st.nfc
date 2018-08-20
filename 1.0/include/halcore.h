@@ -24,7 +24,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include <android/log.h>
 
 /* events sent from the callback */
 #define HAL_EVENT_DSWRITE 1  /* write raw HAL data downstream   */
@@ -42,6 +41,44 @@
 
 #define HAL_FLAG_NO_DEBUG 0 /* disable debug output */
 #define HAL_FLAG_DEBUG 1    /* enable debug output */
+
+bool halTraceMask;
+pthread_mutex_t debugOutputSem;
+
+#ifdef ANDROID
+#include <android/log.h>
+#define LOG(s)                                               \
+  if (!halTraceMask) {                                       \
+  } else {                                                   \
+    pthread_mutex_lock(&debugOutputSem);                     \
+    __android_log_print(ANDROID_LOG_DEBUG, "NfcHalCore", s); \
+    pthread_mutex_unlock(&debugOutputSem);                   \
+  }
+#define LOGE(s)                                              \
+  {                                                          \
+    pthread_mutex_lock(&debugOutputSem);                     \
+    __android_log_print(ANDROID_LOG_ERROR, "NfcHalCore", s); \
+    pthread_mutex_unlock(&debugOutputSem);                   \
+  }
+#define LOGV(s, ...)                                                      \
+  if (!halTraceMask) {                                                    \
+  } else {                                                                \
+    pthread_mutex_lock(&debugOutputSem);                                  \
+    __android_log_print(ANDROID_LOG_DEBUG, "NfcHalCore", s, __VA_ARGS__); \
+    pthread_mutex_unlock(&debugOutputSem);                                \
+  }
+#define LOGVE(s, ...)                                                     \
+  {                                                                       \
+    pthread_mutex_lock(&debugOutputSem);                                  \
+    __android_log_print(ANDROID_LOG_ERROR, "NfcHalCore", s, __VA_ARGS__); \
+    pthread_mutex_unlock(&debugOutputSem);                                \
+  }
+#else
+#define LOG printf
+#define LOGE printf
+#define LOGV printf
+#define LOGVE printf
+#endif
 
 /* callback function to communicate from HAL Core with the outside world */
 typedef void (*HAL_CALLBACK)(void* context, uint32_t event, const void* data,
