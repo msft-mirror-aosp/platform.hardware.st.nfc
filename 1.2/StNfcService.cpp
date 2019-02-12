@@ -1,7 +1,7 @@
 /******************************************************************************
  *
  *  Copyright 2018 NXP
- *  Copyright 2018 ST Microelectronics S.A.
+ *  Copyright 2018 ST Microelectronics
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  *
  ******************************************************************************/
 
-#define LOG_TAG "stnfc@1.1-service.st"
+#define LOG_TAG "stnfc@1.2-service.st"
 #include <android/hardware/nfc/1.1/INfc.h>
 
 #include <hidl/LegacySupport.h>
@@ -29,11 +29,11 @@ using android::sp;
 using android::status_t;
 using android::hardware::configureRpcThreadpool;
 using android::hardware::joinRpcThreadpool;
-using android::hardware::nfc::V1_1::INfc;
-using android::hardware::nfc::V1_1::implementation::Nfc;
+using android::hardware::nfc::V1_2::INfc;
+using android::hardware::nfc::V1_2::implementation::Nfc;
 
 int main() {
-  ALOGD(" ST NFC HAL Service 1.1 is starting.");
+  ALOGD(" ST NFC HAL Service 1.2 is starting.");
   sp<INfc> nfc_service = new Nfc();
 
   configureRpcThreadpool(1, true /*callerWillJoin*/);
