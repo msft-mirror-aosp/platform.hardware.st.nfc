@@ -138,9 +138,11 @@ static void* I2cWorkerThread(void* arg) {
 
           if (readOk == true) {
             int remaining = buffer[2];
-
-            // read and pass to HALCore
-            bytesRead = i2cRead(fidI2c, buffer + 3, remaining);
+            bytesRead = 0;
+            if (remaining != 0) {
+              // read and pass to HALCore
+              bytesRead = i2cRead(fidI2c, buffer + 3, remaining);
+            }
             if (bytesRead == remaining) {
               DispHal("RX DATA", buffer, 3 + bytesRead);
               HalSendUpstream(hHAL, buffer, 3 + bytesRead);
@@ -279,6 +281,18 @@ void I2cCloseLayer() {
     ALOGE("%s: failed to wait for thread (%d)", __func__, ret);
   }
   threadHandle = (pthread_t)NULL;
+  (void)pthread_mutex_unlock(&i2ctransport_mtx);
+}
+
+/**
+ * Terminates the I2C layer.
+ */
+void I2cResetPulse() {
+  ALOGD("%s: enter\n", __func__);
+
+  (void)pthread_mutex_lock(&i2ctransport_mtx);
+
+  i2cResetPulse(fidI2c);
   (void)pthread_mutex_unlock(&i2ctransport_mtx);
 }
 /**************************************************************************************************
