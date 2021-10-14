@@ -31,6 +31,7 @@ extern void HalCoreCallback(void* context, uint32_t event, const void* d,
                             size_t length);
 extern bool I2cOpenLayer(void* dev, HAL_CALLBACK callb, HALHANDLE* pHandle);
 extern void I2cCloseLayer();
+extern void I2cRecovery();
 
 typedef struct {
   struct nfc_nci_device nci_device;  // nci_device must be first struct member
@@ -121,6 +122,8 @@ bool hal_wrapper_open(st21nfc_dev_t* dev, nfc_stack_callback_t* p_cback,
 
   isDebuggable = property_get_int32("ro.debuggable", 0);
   mHalHandle = *pHandle;
+
+  HalSendDownstreamTimer(mHalHandle, 10000);
 
   return 1;
 }
@@ -389,8 +392,9 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
                 property_get_int32("persist.vendor.nfc.firmware_debug_enabled", 0);
 
             // Check if FW DBG shall be set
-            if (GetNumValue(NAME_STNFC_FW_DEBUG_ENABLED, &num, sizeof(num))) {
-              if (firmware_debug_enabled && isDebuggable) num = 1;
+            if (GetNumValue(NAME_STNFC_FW_DEBUG_ENABLED, &num, sizeof(num)) ||
+                isDebuggable) {
+              if (firmware_debug_enabled) num = 1;
               // If conf file indicate set needed and not yet enabled
               if ((num == 1) && (p_data[7] == 0x00)) {
                 STLOG_HAL_D("%s - FW DBG traces enabling needed", __func__);
@@ -567,6 +571,15 @@ static void halWrapperCallback(uint8_t event, __attribute__((unused))uint8_t eve
         HalSendDownstreamStopTimer(mHalHandle);
         hal_fd_close();
         mHalWrapperState = HAL_WRAPPER_STATE_CLOSED;
+        return;
+      }
+      break;
+
+    case HAL_WRAPPER_STATE_OPEN:
+      if (event == HAL_WRAPPER_TIMEOUT_EVT) {
+        STLOG_HAL_D("NFC-NCI HAL: %s  Timeout accessing the CLF.", __func__);
+        HalSendDownstreamStopTimer(mHalHandle);
+        I2cRecovery();
         return;
       }
       break;
