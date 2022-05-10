@@ -23,7 +23,6 @@
 #include <android-base/properties.h>
 #include <dlfcn.h>
 #include <errno.h>
-#include <hardware/nfc.h>
 #include <string.h>
 
 #include "StNfc_hal_api.h"
@@ -34,6 +33,8 @@
 #define VENDOR_LIB_PATH "/vendor/lib64/"
 #define VENDOR_LIB_EXT ".so"
 
+bool dbg_logging = false;
+
 extern void HalCoreCallback(void* context, uint32_t event, const void* d,
                             size_t length);
 extern bool I2cOpenLayer(void* dev, HAL_CALLBACK callb, HALHANDLE* pHandle);
@@ -41,7 +42,6 @@ extern bool I2cOpenLayer(void* dev, HAL_CALLBACK callb, HALHANDLE* pHandle);
 typedef int (*STEseReset)(void);
 
 typedef struct {
-  struct nfc_nci_device nci_device;  // nci_device must be first struct member
   // below declarations are private variables within HAL
   nfc_stack_callback_t* p_cback;
   nfc_stack_data_callback_t* p_data_cback;
@@ -49,18 +49,13 @@ typedef struct {
   nfc_stack_callback_t* p_cback_unwrap;
 } st21nfc_dev_t;
 
-const char* halVersion = "ST21NFC HAL1.2 Version 3.2.54";
+const char* halVersion = "ST21NFC AIDL Version 1.0.0";
 
 uint8_t cmd_set_nfc_mode_enable[] = {0x2f, 0x02, 0x02, 0x02, 0x01};
 uint8_t hal_is_closed = 1;
 pthread_mutex_t hal_mtx = PTHREAD_MUTEX_INITIALIZER;
 st21nfc_dev_t dev;
-uint8_t hal_dta_state = 0;
 int nfc_mode = 0;
-
-using namespace android::hardware::nfc::V1_1;
-using namespace android::hardware::nfc::V1_2;
-using android::hardware::nfc::V1_1::NfcEvent;
 
 /*
  * NCI HAL method implementations. These must be overridden
@@ -293,7 +288,6 @@ int StNfc_hal_open(nfc_stack_callback_t* p_cback,
   dev.p_cback = p_cback;  // will be replaced by wrapper version
   dev.p_cback_unwrap = p_cback;
   dev.p_data_cback = p_data_cback;
-  hal_dta_state = 0;
   // Initialize and get global logging level
   InitializeSTLogLevel();
 
@@ -340,12 +334,10 @@ int StNfc_hal_write(uint16_t data_len, const uint8_t* p_data) {
   return ret;
 }
 
-int StNfc_hal_core_initialized(uint8_t* p_core_init_rsp_params) {
+int StNfc_hal_core_initialized() {
   STLOG_HAL_D("HAL st21nfc: %s", __func__);
 
   (void)pthread_mutex_lock(&hal_mtx);
-  hal_dta_state = *p_core_init_rsp_params;
-
   hal_wrapper_send_config();
   (void)pthread_mutex_unlock(&hal_mtx);
 
@@ -354,8 +346,9 @@ int StNfc_hal_core_initialized(uint8_t* p_core_init_rsp_params) {
 
 int StNfc_hal_pre_discover() {
   STLOG_HAL_D("HAL st21nfc: %s", __func__);
-
-  return 0;  // false if no vendor-specific pre-discovery actions are needed
+  async_callback_post(HAL_NFC_PRE_DISCOVER_CPLT_EVT, HAL_NFC_STATUS_OK);
+  // callback directly if no vendor-specific pre-discovery actions are needed
+  return 0;
 }
 
 int StNfc_hal_close(int nfc_mode_value) {
@@ -374,8 +367,6 @@ int StNfc_hal_close(int nfc_mode_value) {
   }
   hal_is_closed = 1;
   (void)pthread_mutex_unlock(&hal_mtx);
-
-  hal_dta_state = 0;
 
   deInitializeHalLog();
 
@@ -405,12 +396,6 @@ int StNfc_hal_close(int nfc_mode_value) {
   return 0;
 }
 
-int StNfc_hal_control_granted() {
-  STLOG_HAL_D("HAL st21nfc: %s", __func__);
-
-  return 0;
-}
-
 int StNfc_hal_power_cycle() {
   STLOG_HAL_D("HAL st21nfc: %s", __func__);
 
@@ -433,8 +418,8 @@ int StNfc_hal_power_cycle() {
 
 void StNfc_hal_factoryReset() {
   STLOG_HAL_D("HAL st21nfc: %s", __func__);
-  //hal_wrapper_factoryReset();
-  // Nothing needed for factory reset in st21nfc case.
+  // hal_wrapper_factoryReset();
+  //  Nothing needed for factory reset in st21nfc case.
 }
 
 int StNfc_hal_closeForPowerOffCase() {
@@ -446,7 +431,7 @@ int StNfc_hal_closeForPowerOffCase() {
   }
 }
 
-void StNfc_hal_getConfig(android::hardware::nfc::V1_1::NfcConfig& config) {
+void StNfc_hal_getConfig(NfcConfig& config) {
   STLOG_HAL_D("HAL st21nfc: %s", __func__);
   unsigned long num = 0;
   std::array<uint8_t, 10> buffer;
@@ -454,7 +439,7 @@ void StNfc_hal_getConfig(android::hardware::nfc::V1_1::NfcConfig& config) {
   buffer.fill(0);
   long retlen = 0;
 
-  memset(&config, 0x00, sizeof(android::hardware::nfc::V1_1::NfcConfig));
+  memset(&config, 0x00, sizeof(NfcConfig));
 
   if (GetNumValue(NAME_CE_ON_SWITCH_OFF_STATE, &num, sizeof(num))) {
     if (num == 0x1) {
@@ -484,11 +469,11 @@ void StNfc_hal_getConfig(android::hardware::nfc::V1_1::NfcConfig& config) {
   if (GetNumValue(NAME_DEFAULT_ROUTE, &num, sizeof(num))) {
     config.defaultRoute = num;
   }
-  if (GetByteArrayValue(NAME_DEVICE_HOST_WHITE_LIST, (char*)buffer.data(),
+  if (GetByteArrayValue(NAME_DEVICE_HOST_ALLOW_LIST, (char*)buffer.data(),
                         buffer.size(), &retlen)) {
-    config.hostWhitelist.resize(retlen);
+    config.hostAllowlist.resize(retlen);
     for (int i = 0; i < retlen; i++) {
-      config.hostWhitelist[i] = buffer[i];
+      config.hostAllowlist[i] = buffer[i];
     }
   }
 
@@ -522,19 +507,6 @@ void StNfc_hal_getConfig(android::hardware::nfc::V1_1::NfcConfig& config) {
       nfc_mode = 0x2;
     }
   }
-}
-
-void StNfc_hal_getConfig_1_2(android::hardware::nfc::V1_2::NfcConfig& config) {
-  STLOG_HAL_D("HAL st21nfc: %s", __func__);
-  unsigned long num = 0;
-  std::array<uint8_t, 10> buffer;
-
-  buffer.fill(0);
-  long retlen = 0;
-
-  memset(&config, 0x00, sizeof(android::hardware::nfc::V1_2::NfcConfig));
-
-  StNfc_hal_getConfig(config.v1_1);
 
   if (GetByteArrayValue(NAME_OFFHOST_ROUTE_UICC, (char*)buffer.data(),
                         buffer.size(), &retlen)) {
@@ -556,3 +528,14 @@ void StNfc_hal_getConfig_1_2(android::hardware::nfc::V1_2::NfcConfig& config) {
     config.defaultIsoDepRoute = num;
   }
 }
+
+void StNfc_hal_setLogging(bool enable) {
+  dbg_logging = enable;
+  if (dbg_logging) {
+    hal_trace_level = STNFC_TRACE_LEVEL_VERBOSE;
+  } else {
+    hal_trace_level = STNFC_TRACE_LEVEL_ERROR;
+  }
+}
+
+bool StNfc_hal_isLoggingEnabled() { return dbg_logging; }
