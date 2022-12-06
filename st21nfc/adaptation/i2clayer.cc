@@ -113,12 +113,7 @@ static void* I2cWorkerThread(void* arg) {
     int poll_status = poll(event_table, eventNum, -1);
 
     if (-1 == poll_status) {
-      poll_status = errno;
-      STLOG_HAL_E("error in poll call : %d - %s\n", poll_status,
-                  strerror(poll_status));
-      if ((poll_status == EINTR) || (poll_status == EAGAIN)) continue;
-
-      // other errors, we stop.
+      STLOG_HAL_E("error in poll call\n");
       break;
     }
 
@@ -239,9 +234,6 @@ static void* I2cWorkerThread(void* arg) {
       }
     }
   } while (!closeThread);
-
-  // Stop here if we got a serious error above.
-  assert(closeThread);
 
   close(fidI2c);
   close(cmdPipe[0]);
