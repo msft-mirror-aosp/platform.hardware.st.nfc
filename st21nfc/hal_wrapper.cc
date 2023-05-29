@@ -72,6 +72,8 @@ bool ready_flag = 0;
 bool mTimerStarted = false;
 bool forceRecover = false;
 
+static bool sEnableFwLog = false;
+
 void wait_ready() {
   pthread_mutex_lock(&mutex);
   while (!ready_flag) {
@@ -396,9 +398,12 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
 
             // Check if FW DBG shall be set
             if (GetNumValue(NAME_STNFC_FW_DEBUG_ENABLED, &num, sizeof(num)) ||
-                isDebuggable) {
-              if (firmware_debug_enabled) num = 1;
-
+                isDebuggable || sEnableFwLog) {
+              if (firmware_debug_enabled || sEnableFwLog) {
+                num = 1;
+                swp_log = 30;
+                rf_log = 15;
+              }
               if (num == 1) {
                 GetNumValue(NAME_STNFC_FW_SWP_LOG_SIZE, &swp_log,
                             sizeof(swp_log));
@@ -464,7 +469,7 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
                                        nciPropEnableFwDbgTraces_size)) {
                   STLOG_HAL_E("%s - SendDownstream failed", __func__);
                 }
-
+                mHalWrapperState = HAL_WRAPPER_STATE_APPLY_PROP_CONFIG;
                 break;
               }
             }
@@ -614,6 +619,26 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
       mHalWrapperState = HAL_WRAPPER_STATE_READY;
       mHalWrapperDataCallback(data_len, p_data);
       break;
+
+    case HAL_WRAPPER_STATE_APPLY_PROP_CONFIG:
+      STLOG_HAL_V("%s - mHalWrapperState = HAL_WRAPPER_STATE_APPLY_PROP_CONFIG",
+                  __func__);
+      if (p_data[0] == 0x4f) {
+        I2cResetPulse();
+      } else if ((p_data[0] == 0x60) && (p_data[1] == 0x00)) {
+        // Send CORE_INIT_CMD
+        STLOG_HAL_D("%s - Sending CORE_INIT_CMD", __func__);
+        if (!HalSendDownstream(mHalHandle, coreInitCmd, sizeof(coreInitCmd))) {
+          STLOG_HAL_E("NFC-NCI HAL: %s  SendDownstream failed", __func__);
+        }
+      }
+      // CORE_INIT_RSP
+      else if ((p_data[0] == 0x40) && (p_data[1] == 0x01)) {
+        // Exit state, all processing done
+        mHalWrapperCallback(HAL_NFC_POST_INIT_CPLT_EVT, HAL_NFC_STATUS_OK);
+        mHalWrapperState = HAL_WRAPPER_STATE_READY;
+      }
+      break;
   }
 }
 
@@ -717,4 +742,19 @@ void hal_wrapper_set_state(hal_wrapper_state_e new_wrapper_state) {
   ALOGD("nfc_set_state %d->%d", mHalWrapperState, new_wrapper_state);
 
   mHalWrapperState = new_wrapper_state;
+}
+
+/*******************************************************************************
+ **
+ ** Function         hal_wrapper_setFwLogging
+ **
+ ** Description      Enable the FW log by hte GUI if needed.
+ **
+ ** Returns          void
+ **
+ *******************************************************************************/
+void hal_wrapper_setFwLogging(bool enable) {
+  ALOGD("%s : enable = %d", __func__, enable);
+
+  sEnableFwLog = enable;
 }
