@@ -56,6 +56,7 @@ typedef enum {
   HAL_WRAPPER_STATE_APPLY_CUSTOM_PARAM,
   HAL_WRAPPER_STATE_APPLY_UWB_PARAM,
   HAL_WRAPPER_STATE_SET_ACTIVERW_TIMER,
+  HAL_WRAPPER_STATE_APPLY_PROP_CONFIG,
 } hal_wrapper_state_e;
 
 /* callback function to communicate from HAL Core with the outside world */
@@ -83,5 +84,6 @@ bool HalSendDownstreamStopTimer(HALHANDLE hHAL);
 bool HalSendUpstream(HALHANDLE hHAL, const uint8_t* data, size_t size);
 
 void hal_wrapper_set_state(hal_wrapper_state_e new_wrapper_state);
+void hal_wrapper_setFwLogging(bool enable);
 void I2cResetPulse();
 #endif
