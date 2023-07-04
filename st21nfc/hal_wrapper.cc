@@ -70,7 +70,9 @@ bool mHciCreditLent = false;
 bool mfactoryReset = false;
 bool ready_flag = 0;
 bool mTimerStarted = false;
+bool mFieldInfoTimerStarted = false;
 bool forceRecover = false;
+unsigned long hal_field_timer = 0;
 
 static bool sEnableFwLog = false;
 
@@ -475,7 +477,9 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
             }
           }
         }
-
+        GetNumValue(NAME_STNFC_REMOTE_FIELD_TIMER, &hal_field_timer,
+                    sizeof(hal_field_timer));
+        STLOG_HAL_D("%s - hal_field_timer = %lu", __func__, hal_field_timer);
         // Exit state, all processing done
         mHalWrapperCallback(HAL_NFC_POST_INIT_CPLT_EVT, HAL_NFC_STATUS_OK);
         mHalWrapperState = HAL_WRAPPER_STATE_READY;
@@ -497,6 +501,20 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
                 // send with 1 less
                 p_data[5]--;
               }
+            }
+          }
+        } else if ((p_data[0] == 0x61) && (p_data[1] == 0x07)) {
+          // RF_FIELD_INFO_NTF
+          if (p_data[3] == 0x01) {  // field on
+            // start timer
+            if (hal_field_timer) {
+              mFieldInfoTimerStarted = true;
+              HalSendDownstreamTimer(mHalHandle, 20000);
+            }
+          } else if (p_data[3] == 0x00) {
+            if (mFieldInfoTimerStarted) {
+              HalSendDownstreamStopTimer(mHalHandle);
+              mFieldInfoTimerStarted = false;
             }
           }
         } else if ((p_data[0] == 0x6f) && (p_data[1] == 0x05)) {
@@ -530,6 +548,10 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
                    ((p_data[0] == 0x61) && (p_data[1] == 0x03))) {
           mError_count = 0;
           // stop timer
+          if (mFieldInfoTimerStarted) {
+            HalSendDownstreamStopTimer(mHalHandle);
+            mFieldInfoTimerStarted = false;
+          }
           if (mTimerStarted) {
             HalSendDownstreamStopTimer(mHalHandle);
             mTimerStarted = false;
@@ -559,6 +581,11 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
               p_data[4] = 0x00;
               p_data[5] = 0x00;
               data_len = 0x6;
+            }
+          } else if (p_data[3] == 0xA1) {
+            if (mFieldInfoTimerStarted) {
+              HalSendDownstreamStopTimer(mHalHandle);
+              mFieldInfoTimerStarted = false;
             }
           }
         }
@@ -639,11 +666,16 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
         mHalWrapperState = HAL_WRAPPER_STATE_READY;
       }
       break;
+    case HAL_WRAPPER_STATE_RECOVERY:
+      break;
   }
 }
 
 static void halWrapperCallback(uint8_t event, __attribute__((unused))uint8_t event_status) {
   uint8_t coreInitCmd[] = {0x20, 0x01, 0x02, 0x00, 0x00};
+  uint8_t rfDeactivateCmd[] = {0x21, 0x06, 0x01, 0x00};
+  uint8_t p_data[6];
+  uint16_t data_len;
 
   switch (mHalWrapperState) {
     case HAL_WRAPPER_STATE_CLOSING:
@@ -707,16 +739,30 @@ static void halWrapperCallback(uint8_t event, __attribute__((unused))uint8_t eve
 
     case HAL_WRAPPER_STATE_READY:
       if (event == HAL_WRAPPER_TIMEOUT_EVT) {
-        if (mTimerStarted) {
-          STLOG_HAL_E("NFC-NCI HAL: %s  Timeout.. Recover", __func__);
+        if (mTimerStarted || mFieldInfoTimerStarted) {
+          STLOG_HAL_E("NFC-NCI HAL: %s  Timeout.. Recover!", __func__);
           STLOG_HAL_E("%s mIsActiveRW = %d", __func__, mIsActiveRW);
           HalSendDownstreamStopTimer(mHalHandle);
           mTimerStarted = false;
-          forceRecover = true;
+          mFieldInfoTimerStarted = false;
+          // forceRecover = true;
           resetHandlerState();
-          I2cResetPulse();
-          mHalWrapperState = HAL_WRAPPER_STATE_OPEN;
+          if (!HalSendDownstream(mHalHandle, rfDeactivateCmd,
+                                 sizeof(rfDeactivateCmd))) {
+            STLOG_HAL_E("%s - SendDownstream failed", __func__);
+          }
+          usleep(10000);
+          // Core Generic Error
 
+          p_data[0] = 0x60;
+          p_data[1] = 0x00;
+          p_data[2] = 0x03;
+          p_data[3] = 0xAA;
+          p_data[4] = 0x00;
+          p_data[5] = 0x00;
+          data_len = 0x6;
+          mHalWrapperDataCallback(data_len, p_data);
+          mHalWrapperState = HAL_WRAPPER_STATE_RECOVERY;
         }
         return;
       }
