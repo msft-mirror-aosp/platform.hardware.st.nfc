@@ -556,6 +556,10 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
             HalSendDownstreamStopTimer(mHalHandle);
             mTimerStarted = false;
           }
+        } else if (p_data[0] == 0x60 && p_data[1] == 0x00) {
+          p_data[3] = 0x0;  // Only reset trigger that should be received in
+                            // HAL_WRAPPER_STATE_READY is unreocoverable error.
+
         } else if (data_len >= 4 && p_data[0] == 0x60 && p_data[1] == 0x07) {
           if (p_data[3] == 0xE1) {
             // Core Generic Error - Buffer Overflow Ntf - Restart all
