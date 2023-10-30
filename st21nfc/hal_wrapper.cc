@@ -308,8 +308,7 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
       STLOG_HAL_V("%s - mHalWrapperState = HAL_WRAPPER_STATE_OPEN_CPLT",
                   __func__);
       // CORE_INIT_RSP
-      if (((p_data[0] == 0x40) && (p_data[1] == 0x01)) ||
-          ((p_data[0] == 0x60) && (p_data[1] == 0x00) && (p_data[3] == 0x01))) {
+      if ((p_data[0] == 0x40) && (p_data[1] == 0x01)) {
       } else if ((p_data[0] == 0x60) && (p_data[1] == 0x06)) {
         STLOG_HAL_V("%s - Sending PROP_NFC_MODE_SET_CMD", __func__);
         // Send PROP_NFC_MODE_SET_CMD(ON)
@@ -557,6 +556,10 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
             HalSendDownstreamStopTimer(mHalHandle);
             mTimerStarted = false;
           }
+        } else if (p_data[0] == 0x60 && p_data[1] == 0x00) {
+          p_data[3] = 0x0;  // Only reset trigger that should be received in
+                            // HAL_WRAPPER_STATE_READY is unreocoverable error.
+
         } else if (data_len >= 4 && p_data[0] == 0x60 && p_data[1] == 0x07) {
           if (p_data[3] == 0xE1) {
             // Core Generic Error - Buffer Overflow Ntf - Restart all
@@ -668,7 +671,6 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
       }
       break;
     case HAL_WRAPPER_STATE_RECOVERY:
-      set_ready(1);
       break;
   }
 }
@@ -694,10 +696,8 @@ static void halWrapperCallback(uint8_t event, __attribute__((unused))uint8_t eve
       if (event == HAL_WRAPPER_TIMEOUT_EVT) {
         STLOG_HAL_D("NFC-NCI HAL: %s  Timeout accessing the CLF.", __func__);
         HalSendDownstreamStopTimer(mHalHandle);
-        resetHandlerState();
-        I2cResetPulse();
-        mHalWrapperState = HAL_WRAPPER_STATE_OPEN;
-        STLOG_HAL_E("%s - Timer when opening the HAL, retry", __func__);
+        I2cRecovery();
+        abort(); // TODO: fix it when we have a better recovery method.
         return;
       }
       break;
@@ -714,6 +714,7 @@ static void halWrapperCallback(uint8_t event, __attribute__((unused))uint8_t eve
       if (event == HAL_WRAPPER_TIMEOUT_EVT) {
         STLOG_HAL_E("%s - Timer for FW update procedure timeout, retry",
                     __func__);
+        abort(); // TODO: fix it when we have a better recovery method.
         HalSendDownstreamStopTimer(mHalHandle);
         resetHandlerState();
         I2cResetPulse();
@@ -735,20 +736,11 @@ static void halWrapperCallback(uint8_t event, __attribute__((unused))uint8_t eve
     case HAL_WRAPPER_STATE_PROP_CONFIG:
       if (event == HAL_WRAPPER_TIMEOUT_EVT) {
         STLOG_HAL_E("%s - Timer when sending conf parameters, retry", __func__);
+        abort(); // TODO: fix it when we have a better recovery method.
         HalSendDownstreamStopTimer(mHalHandle);
-        set_ready(1);
         resetHandlerState();
-        // Core Generic Error
-        p_data[0] = 0x60;
-        p_data[1] = 0x00;
-        p_data[2] = 0x03;
-        p_data[3] = 0xAA;
-        p_data[4] = 0x00;
-        p_data[5] = 0x00;
-        data_len = 0x6;
-        mHalWrapperDataCallback(data_len, p_data);
-        mHalWrapperState = HAL_WRAPPER_STATE_RECOVERY;
-        return;
+        I2cResetPulse();
+        mHalWrapperState = HAL_WRAPPER_STATE_OPEN;
       }
       break;
 
@@ -772,7 +764,7 @@ static void halWrapperCallback(uint8_t event, __attribute__((unused))uint8_t eve
           p_data[0] = 0x60;
           p_data[1] = 0x00;
           p_data[2] = 0x03;
-          p_data[3] = 0xAB;
+          p_data[3] = 0xAA;
           p_data[4] = 0x00;
           p_data[5] = 0x00;
           data_len = 0x6;
