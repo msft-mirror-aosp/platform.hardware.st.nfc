@@ -161,7 +161,7 @@ void hal_wrapper_send_core_config_prop() {
       STLOG_HAL_V("%s - Enter", __func__);
       set_ready(0);
 
-      if (!HalSendDownstreamTimer(mHalHandle, ConfigBuffer, retlen, 500)) {
+      if (!HalSendDownstreamTimer(mHalHandle, ConfigBuffer, retlen, 1000)) {
         STLOG_HAL_E("NFC-NCI HAL: %s  SendDownstream failed", __func__);
       }
       mHalWrapperState = HAL_WRAPPER_STATE_PROP_CONFIG;
@@ -177,7 +177,7 @@ void hal_wrapper_send_vs_config() {
   set_ready(0);
 
   if (!HalSendDownstreamTimer(mHalHandle, nciPropGetFwDbgTracesConfig,
-                              sizeof(nciPropGetFwDbgTracesConfig), 500)) {
+                              sizeof(nciPropGetFwDbgTracesConfig), 1000)) {
     STLOG_HAL_E("%s - SendDownstream failed", __func__);
   }
   mReadFwConfigDone = true;
