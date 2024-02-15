@@ -31,7 +31,11 @@
 #include "halcore.h"
 #include "st21nfc_dev.h"
 
+#if defined(ST_LIB_32)
+#define VENDOR_LIB_PATH "/vendor/lib/"
+#else
 #define VENDOR_LIB_PATH "/vendor/lib64/"
+#endif
 #define VENDOR_LIB_EXT ".so"
 
 bool dbg_logging = false;
@@ -528,6 +532,7 @@ void StNfc_hal_getConfig(NfcConfig& config) {
 
 void StNfc_hal_setLogging(bool enable) {
   dbg_logging = enable;
+  hal_wrapper_setFwLogging(enable);
   if (dbg_logging && hal_conf_trace_level < STNFC_TRACE_LEVEL_VERBOSE) {
     hal_trace_level = STNFC_TRACE_LEVEL_VERBOSE;
   } else {
