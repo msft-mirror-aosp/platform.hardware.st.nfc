@@ -70,7 +70,7 @@ uint8_t handlePollingLoopData(uint8_t format, uint8_t* tlvBuffer,
     case T_CERx: {
       STLOG_HAL_D("%s - T_CERx", __func__);
       int tlv_size = tlvBuffer[1]-2;
-      if ((tlv_size < 9) || (tlvBuffer[5] != 0)) {
+      if (tlv_size < 9) {
       tlv_size = 8;
       }
       value_len = tlv_size- 3;
@@ -108,6 +108,10 @@ uint8_t handlePollingLoopData(uint8_t format, uint8_t* tlvBuffer,
         default:
           type = TYPE_UNKNOWN;
           break;
+      }
+      if (tlvBuffer[5] != 0) {
+        // if error flag is set, consider the frame as unknown.
+        type = TYPE_UNKNOWN;
       }
       (*NewTlv)[0] = type;
       (*NewTlv)[1] = flag;
