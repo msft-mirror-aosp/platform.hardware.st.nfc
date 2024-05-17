@@ -436,7 +436,7 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
               } else {
                 swp_log = 8;
               }
-              rf_log = 30;
+              rf_log = 15;
 
               if (num == 1) {
                 GetNumValue(NAME_STNFC_FW_SWP_LOG_SIZE, &swp_log,
