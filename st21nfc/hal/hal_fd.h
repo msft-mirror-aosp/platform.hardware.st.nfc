@@ -74,8 +74,6 @@ typedef enum {
 #define CONF_UPDATE_NEEDED 2
 #define UWB_CONF_UPDATE_NEEDED 4
 
-#define MAX_BUFFER_SIZE 300
-
 // HwVersion :
 #define HW_NFCD 0x04
 #define HW_ST54J 0x05
@@ -94,4 +92,5 @@ void ApplyUwbParamHandler(HALHANDLE mHalHandle, uint16_t data_len,
                              uint8_t* p_data);
 void resetHandlerState();
 bool ft_CheckUWBConf() ;
+FWInfo* hal_fd_getFwInfo();
 #endif /* HAL_FD_H_ */
