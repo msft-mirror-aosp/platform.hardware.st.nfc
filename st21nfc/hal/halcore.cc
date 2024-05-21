@@ -29,6 +29,7 @@
 #include "android_logmsg.h"
 #include "halcore_private.h"
 #include "st21nfc_dev.h"
+#include "hal_fd.h"
 
 extern int I2cWriteCmd(const uint8_t* x, size_t len);
 extern void DispHal(const char* title, const void* data, size_t length);
@@ -39,6 +40,13 @@ extern uint32_t ScrProtocolTraceFlag;  // = SCR_PROTO_TRACE_ALL;
 static void HalStopTimer(HalInstance* inst);
 static bool rf_deactivate_delay;
 struct timespec start_tx_data;
+uint8_t NCI_ANDROID_GET_CAPS[] = {0x2f, 0x0c, 0x01, 0x0};
+uint8_t NCI_ANDROID_GET_CAPS_RSP[] = {0x4f,0x0c,0x0e,0x00,0x00,0x00,0x00,0x03,
+                                      0x00,0x01,0x01, //Passive Observe mode
+                                      0x01,0x01,0x01, //Polling frame ntf
+                                      0x03,0x01,0x00  //Autotransact polling loop filter
+                                    };
+
 
 /**************************************************************************************************
  *
@@ -102,13 +110,18 @@ void HalCoreCallback(void* context, uint32_t event, const void* d,
         rf_deactivate_delay = false;
       }
       STLOG_HAL_V("!! got event HAL_EVENT_DSWRITE for %zu bytes\n", length);
-      DispHal("TX DATA", (data), length);
 
-      // Send write command to IO thread
-      cmd = 'W';
-      I2cWriteCmd(&cmd, sizeof(cmd));
-      I2cWriteCmd((const uint8_t*)&length, sizeof(length));
-      I2cWriteCmd(data, length);
+      DispHal("TX DATA", (data), length);
+      if (length == 4 && !memcmp(data, NCI_ANDROID_GET_CAPS,
+           sizeof(NCI_ANDROID_GET_CAPS))) {
+        dev->p_data_cback(NCI_ANDROID_GET_CAPS_RSP[2]+3, NCI_ANDROID_GET_CAPS_RSP);
+      } else {
+        // Send write command to IO thread
+        cmd = 'W';
+        I2cWriteCmd(&cmd, sizeof(cmd));
+        I2cWriteCmd((const uint8_t*)&length, sizeof(length));
+        I2cWriteCmd(data, length);
+      }
       break;
 
     case HAL_EVENT_DATAIND:
