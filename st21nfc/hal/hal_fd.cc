@@ -307,6 +307,11 @@ void hal_fd_close() {
   }
 }
 
+FWInfo* hal_fd_getFwInfo() {
+  STLOG_HAL_D("  %s -enter", __func__);
+   return mFWInfo;
+}
+
 /**
  * Send a HW reset and decode NCI_CORE_RESET_NTF information
  * @param pHwVersion is used to return HW version, part of NCI_CORE_RESET_NTF
