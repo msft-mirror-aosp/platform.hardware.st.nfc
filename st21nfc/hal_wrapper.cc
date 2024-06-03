@@ -232,6 +232,9 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
       mHalWrapperDataCallback(mObserverLength, nciAndroidPassiveObserver);
     }
   }
+  if ((p_data[0] == 0x4f) && (p_data[1] == 0x0c)) {
+    DispHal("RX DATA", (p_data), data_len);
+  }
 
   switch (mHalWrapperState) {
     case HAL_WRAPPER_STATE_CLOSED:  // 0
@@ -428,8 +431,13 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
               if (firmware_debug_enabled || sEnableFwLog) {
                 num = 1;
                 swp_log = 30;
-                rf_log = 15;
+              } else if (isDebuggable) {
+                swp_log = 30;
+              } else {
+                swp_log = 8;
               }
+              rf_log = 15;
+
               if (num == 1) {
                 GetNumValue(NAME_STNFC_FW_SWP_LOG_SIZE, &swp_log,
                             sizeof(swp_log));
