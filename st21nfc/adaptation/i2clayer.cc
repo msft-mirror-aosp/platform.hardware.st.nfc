@@ -526,6 +526,7 @@ redo:
   CPUs have shown such long unavailability sometimes */
   if (halfsecs < 10) {
     usleep(500000);
+    retries = 0;
     halfsecs++;
     goto redo;
   }
