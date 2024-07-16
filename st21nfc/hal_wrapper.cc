@@ -511,7 +511,11 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
                 set_ready(1);
               }
             }
+          } else {
+            set_ready(1);
           }
+        } else {
+          set_ready(1);
         }
       }
       break;
