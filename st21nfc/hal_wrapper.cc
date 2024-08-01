@@ -75,6 +75,7 @@ bool mTimerStarted = false;
 bool mFieldInfoTimerStarted = false;
 bool forceRecover = false;
 unsigned long hal_field_timer = 0;
+bool mIntfActivated = false;
 
 static bool sEnableFwLog = false;
 uint8_t mObserverMode = 0;
@@ -110,6 +111,7 @@ bool hal_wrapper_open(st21nfc_dev_t* dev, nfc_stack_callback_t* p_cback,
   mHciCreditLent = false;
   mReadFwConfigDone = false;
   mError_count = 0;
+  mIntfActivated = false;
 
   mObserverMode = 0;
   mObserverRsp = false;
@@ -223,7 +225,7 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
   int mObserverLength = 0;
   int nciPropEnableFwDbgTraces_size = sizeof(nciPropEnableFwDbgTraces);
 
-  if (mObserverMode && (p_data[0] == 0x6f) && (p_data[1] == 0x02)) {
+  if (!mIntfActivated && (p_data[0] == 0x6f) && (p_data[1] == 0x02)) {
     // Firmware logs must not be formatted before sending to upper layer.
     if ((mObserverLength = notifyPollingLoopFrames(
              p_data, data_len, nciAndroidPassiveObserver)) > 0) {
@@ -607,6 +609,7 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
         } else if (((p_data[0] == 0x61) && (p_data[1] == 0x05)) ||
                    ((p_data[0] == 0x61) && (p_data[1] == 0x03))) {
           mError_count = 0;
+          mIntfActivated = true;
           // stop timer
           if (mFieldInfoTimerStarted) {
             HalSendDownstreamStopTimer(mHalHandle);
@@ -616,6 +619,8 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
             HalSendDownstreamStopTimer(mHalHandle);
             mTimerStarted = false;
           }
+        } else if ((p_data[0] == 0x61) && (p_data[1] == 0x06)) {
+          mIntfActivated = false;
         } else if (p_data[0] == 0x60 && p_data[1] == 0x00) {
           p_data[3] = 0x0;  // Only reset trigger that should be received in
                             // HAL_WRAPPER_STATE_READY is unreocoverable error.
