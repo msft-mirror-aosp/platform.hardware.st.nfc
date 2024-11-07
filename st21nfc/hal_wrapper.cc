@@ -631,7 +631,7 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
           STLOG_HAL_E("%s - Reset trigger from 0x%x to 0x0", __func__, p_data[3]);
           p_data[3] = 0x0;  // Only reset trigger that should be received in
                             // HAL_WRAPPER_STATE_READY is unreocoverable error.
-
+          mHalWrapperState = HAL_WRAPPER_STATE_RECOVERY;
         } else if (data_len >= 4 && p_data[0] == 0x60 && p_data[1] == 0x07) {
           if (p_data[3] == 0xE1) {
             // Core Generic Error - Buffer Overflow Ntf - Restart all
@@ -643,6 +643,7 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
             p_data[4] = 0x00;
             p_data[5] = 0x00;
             data_len = 0x6;
+            mHalWrapperState = HAL_WRAPPER_STATE_RECOVERY;
           } else if (p_data[3] == 0xE6) {
             unsigned long hal_ctrl_clk = 0;
             GetNumValue(NAME_STNFC_CONTROL_CLK, &hal_ctrl_clk,
@@ -657,6 +658,7 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
               p_data[4] = 0x00;
               p_data[5] = 0x00;
               data_len = 0x6;
+              mHalWrapperState = HAL_WRAPPER_STATE_RECOVERY;
             }
           } else if (p_data[3] == 0xA1) {
             if (mFieldInfoTimerStarted) {
