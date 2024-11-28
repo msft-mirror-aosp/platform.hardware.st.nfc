@@ -766,7 +766,7 @@ static void halWrapperCallback(uint8_t event, __attribute__((unused))uint8_t eve
 
     case HAL_WRAPPER_STATE_OPEN:
       if (event == HAL_WRAPPER_TIMEOUT_EVT) {
-        STLOG_HAL_D("NFC-NCI HAL: %s  Timeout accessing the CLF.", __func__);
+        STLOG_HAL_E("NFC-NCI HAL: %s  Timeout accessing the CLF.", __func__);
         HalSendDownstreamStopTimer(mHalHandle);
         I2cRecovery();
         abort(); // TODO: fix it when we have a better recovery method.
