@@ -850,6 +850,9 @@ static void halWrapperCallback(uint8_t event, __attribute__((unused))uint8_t eve
       break;
 
     default:
+      if (event == HAL_WRAPPER_TIMEOUT_EVT) {
+        STLOG_HAL_E("NFC-NCI HAL: %s  Timeout at state: %d", __func__, mHalWrapperState);
+      }
       break;
   }
 
