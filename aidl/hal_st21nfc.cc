@@ -67,7 +67,7 @@ extern int hal_wrapper_close(int call_cb, int nfc_mode);
 
 extern void hal_wrapper_send_config();
 extern void hal_wrapper_factoryReset();
-extern void hal_wrapper_set_observer_mode(uint8_t enable);
+extern void hal_wrapper_set_observer_mode(uint8_t enable, bool per_tech_cmd);
 extern void hal_wrapper_get_observer_mode();
 
 /* Make sure to always post nfc_stack_callback_t in a separate thread.
@@ -314,6 +314,7 @@ int StNfc_hal_write(uint16_t data_len, const uint8_t* p_data) {
   STLOG_HAL_D("HAL st21nfc: %s", __func__);
 
   uint8_t NCI_ANDROID_PASSIVE_OBSERVER_PREFIX[] = {0x2f, 0x0c, 0x02, 0x02};
+  uint8_t NCI_ANDROID_PASSIVE_OBSERVER_PER_TECH_PREFIX[] = {0x2f, 0x0c, 0x02, 0x05};
   uint8_t NCI_QUERY_ANDROID_PASSIVE_OBSERVER_PREFIX[] = {0x2f, 0x0c, 0x01, 0x4};
   uint8_t RF_GET_LISTEN_OBSERVE_MODE_STATE[5] = {0x21, 0x17, 0x00};
   uint8_t RF_SET_LISTEN_OBSERVE_MODE_STATE[4] = {0x21, 0x16, 0x01, 0x0};
@@ -362,12 +363,27 @@ int StNfc_hal_write(uint16_t data_len, const uint8_t* p_data) {
         mTechObserved = 0x7;
       }
       mSetObserve[3] = mTechObserved;
-      hal_wrapper_set_observer_mode(mTechObserved);
+      hal_wrapper_set_observer_mode(mTechObserved, true);
     } else {
       mSetObserve[6] = p_data[4];
-      hal_wrapper_set_observer_mode(p_data[4]);
+      hal_wrapper_set_observer_mode(p_data[4], false);
     }
 
+    if (!HalSendDownstream(dev.hHAL, mSetObserve, mSetObserve_size)) {
+      STLOG_HAL_E("HAL st21nfc %s  SendDownstream failed", __func__);
+      (void)pthread_mutex_unlock(&hal_mtx);
+      return 0;
+    }
+  } else if (data_len == 5 &&
+           !memcmp(p_data, NCI_ANDROID_PASSIVE_OBSERVER_PER_TECH_PREFIX,
+                   sizeof(NCI_ANDROID_PASSIVE_OBSERVER_PER_TECH_PREFIX))) {
+    mSetObserve = RF_SET_LISTEN_OBSERVE_MODE_STATE;
+    mSetObserve_size = 4;
+    if (p_data[4]) {
+      mTechObserved = p_data[4];
+    }
+    mSetObserve[3] = mTechObserved;
+    hal_wrapper_set_observer_mode(mTechObserved, true);
     if (!HalSendDownstream(dev.hHAL, mSetObserve, mSetObserve_size)) {
       STLOG_HAL_E("HAL st21nfc %s  SendDownstream failed", __func__);
       (void)pthread_mutex_unlock(&hal_mtx);
