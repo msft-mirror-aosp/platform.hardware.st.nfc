@@ -363,7 +363,7 @@ int StNfc_hal_write(uint16_t data_len, const uint8_t* p_data) {
         mTechObserved = 0x7;
       }
       mSetObserve[3] = mTechObserved;
-      hal_wrapper_set_observer_mode(mTechObserved, true);
+      hal_wrapper_set_observer_mode(mTechObserved, false);
     } else {
       mSetObserve[6] = p_data[4];
       hal_wrapper_set_observer_mode(p_data[4], false);
