@@ -550,8 +550,7 @@ static int i2cRead(int fid, uint8_t* pvBuffer, int length) {
     result = read(fid, pvBuffer, length);
 
     if (result == -1) {
-      int e = errno;
-      if (e == EAGAIN) {
+      if (errno == EAGAIN) {
         /* File is nonblocking, and no data is available.
          * This is not an error condition!
          */
@@ -561,23 +560,21 @@ static int i2cRead(int fid, uint8_t* pvBuffer, int length) {
       } else {
         /* unexpected result */
         char msg[LINUX_DBGBUFFER_SIZE];
-        strerror_r(e, msg, LINUX_DBGBUFFER_SIZE);
-        STLOG_HAL_W("## i2cRead returns %d errno %d (%s)", result, e, msg);
+        strerror_r(errno, msg, LINUX_DBGBUFFER_SIZE);
+        STLOG_HAL_W("## i2cRead returns %d errno %d (%s)", result, errno, msg);
       }
     }
 
-    if (result < 0) {
-      if (retries < 3) {
-        /* delays are different and increasing for the three retries. */
-        static const uint8_t delayTab[] = {2, 3, 5};
-        int delay = delayTab[retries];
+    if (result < 0 && retries < 3) {
+      /* delays are different and increasing for the three retries. */
+      static const uint8_t delayTab[] = {2, 3, 5};
+      int delay = delayTab[retries];
 
-        retries++;
-        STLOG_HAL_W("## i2cRead retry %d/3 in %d milliseconds.", retries,
-                    delay);
-        usleep(delay * 1000);
-        continue;
-      }
+      retries++;
+      STLOG_HAL_W("## i2cRead retry %d/3 in %d milliseconds.", retries,
+                  delay);
+      usleep(delay * 1000);
+      continue;
     }
   }
   return result;
