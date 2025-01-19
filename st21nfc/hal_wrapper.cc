@@ -79,6 +79,7 @@ unsigned long hal_field_timer = 0;
 static bool sEnableFwLog = false;
 uint8_t mObserverMode = 0;
 bool mObserverRsp = false;
+bool mPerTechCmdRsp = false;
 
 void wait_ready() {
   pthread_mutex_lock(&mutex);
@@ -201,9 +202,10 @@ void hal_wrapper_factoryReset() {
   STLOG_HAL_V("%s - mfactoryReset = %d", __func__, mfactoryReset);
 }
 
-void hal_wrapper_set_observer_mode(uint8_t enable) {
+void hal_wrapper_set_observer_mode(uint8_t enable, bool per_tech_cmd) {
   mObserverMode = enable;
   mObserverRsp = true;
+  mPerTechCmdRsp = per_tech_cmd;
 }
 void hal_wrapper_get_observer_mode() { mObserverRsp = true; }
 
@@ -529,7 +531,7 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
           p_data[0] = 0x4f;
           p_data[1] = 0x0c;
           p_data[2] = 0x02;
-          p_data[3] = 0x02;
+          p_data[3] = mPerTechCmdRsp ? 0x05 : 0x02;
           p_data[4] = rsp_status;
           data_len = 0x5;
         } else if (((p_data[0] == 0x41) && (p_data[1] == 0x17) &&
