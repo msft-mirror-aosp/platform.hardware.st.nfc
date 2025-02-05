@@ -467,6 +467,12 @@ uint8_t ft_cmd_HwReset(uint8_t* pdata, uint8_t* clf_mode) {
   } else {
     mFWCap->ObserveMode = 0x1;
   }
+  if (hal_fd_getFwInfo()->chipHwVersion == HW_ST54L &&
+      (FWVersionMajor >= 0x2) && (FWVersionMinor >= 0x6)) {
+    mFWCap->ExitFrameSupport = 0x1;
+  } else {
+    mFWCap->ExitFrameSupport = 0x0;
+  }
   return result;
 } /* ft_cmd_HwReset */
 

@@ -47,7 +47,7 @@ typedef struct FWInfo {
  */
 typedef struct FWCap {
   uint8_t ObserveMode;
-
+  uint8_t ExitFrameSupport;
 } FWCap;
 
 typedef enum {

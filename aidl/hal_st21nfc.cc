@@ -393,6 +393,18 @@ int StNfc_hal_write(uint16_t data_len, const uint8_t* p_data) {
       return 0;
     }
   } else if (!memcmp(p_data, NCI_ANDROID_PREFIX, sizeof(NCI_ANDROID_PREFIX)) &&
+             p_data[3] == 0x6) {
+    DispHal("TX DATA", (p_data), data_len);
+    memcpy(nci_cmd+3, p_data+4, data_len-4);
+    nci_cmd[0] = 0x2f;
+    nci_cmd[1] = 0x19;
+    nci_cmd[2] = p_data[2]-1;
+    if (!HalSendDownstream(dev.hHAL, nci_cmd, data_len)) {
+      STLOG_HAL_E("HAL st21nfc %s  SendDownstream failed", __func__);
+      (void)pthread_mutex_unlock(&hal_mtx);
+      return 0;
+    }
+  } else if (!memcmp(p_data, NCI_ANDROID_PREFIX, sizeof(NCI_ANDROID_PREFIX)) &&
              p_data[3] == 0x9) {
     DispHal("TX DATA", (p_data), data_len);
     memcpy(nci_cmd + 3, p_data + 4, data_len - 4);
