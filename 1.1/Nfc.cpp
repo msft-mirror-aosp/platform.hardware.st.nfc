@@ -19,7 +19,9 @@
 
 #define LOG_TAG "android.hardware.nfc@1.1-impl"
 #include "Nfc.h"
+
 #include <log/log.h>
+
 #include "StNfc_hal_api.h"
 
 #define CHK_STATUS(x) \

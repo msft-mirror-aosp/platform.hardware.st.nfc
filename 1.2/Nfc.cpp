@@ -18,14 +18,14 @@
  ******************************************************************************/
 
 #define LOG_TAG "android.hardware.nfc@1.2-impl"
-#include <log/log.h>
 #include "Nfc.h"
+
+#include <log/log.h>
+
 #include "StNfc_hal_api.h"
 
-
-
-#define CHK_STATUS(x) ((x) == NFCSTATUS_SUCCESS) \
-      ? (V1_0::NfcStatus::OK) : (V1_0::NfcStatus::FAILED)
+#define CHK_STATUS(x) \
+  ((x) == NFCSTATUS_SUCCESS) ? (V1_0::NfcStatus::OK) : (V1_0::NfcStatus::FAILED)
 
 bool nfc_debug_enabled = true;
 
@@ -41,7 +41,7 @@ sp<V1_0::INfcClientCallback> Nfc::mCallbackV1_0 = nullptr;
 Return<V1_0::NfcStatus> Nfc::open_1_1(
     const sp<V1_1::INfcClientCallback>& clientCallback) {
   if (clientCallback == nullptr) {
-    ALOGD_IF(nfc_debug_enabled,"Nfc::open null callback");
+    ALOGD_IF(nfc_debug_enabled, "Nfc::open null callback");
     return V1_0::NfcStatus::FAILED;
   } else {
     pthread_mutex_lock(&mLockOpenClose);
@@ -69,7 +69,8 @@ Return<V1_0::NfcStatus> Nfc::open(
   }
 
   int ret = StNfc_hal_open(eventCallback, dataCallback);
-  ALOGD_IF(nfc_debug_enabled, "Nfc::open Exit (count:%llu)", (unsigned long long)mOpenCount);
+  ALOGD_IF(nfc_debug_enabled, "Nfc::open Exit (count:%llu)",
+           (unsigned long long)mOpenCount);
   pthread_mutex_unlock(&mLockOpenClose);
   return ret == 0 ? V1_0::NfcStatus::OK : V1_0::NfcStatus::FAILED;
 }
