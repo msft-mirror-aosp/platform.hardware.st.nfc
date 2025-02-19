@@ -20,9 +20,9 @@
 
 #include "Nfc.h"
 
+using ::aidl::android::hardware::nfc::Nfc;
 using android::fuzzService;
 using ndk::SharedRefBase;
-using ::aidl::android::hardware::nfc::Nfc;
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   std::shared_ptr<Nfc> nfc_service = ndk::SharedRefBase::make<Nfc>();

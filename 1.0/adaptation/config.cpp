@@ -20,13 +20,15 @@
  *
  *
  ******************************************************************************/
+#include <log/log.h>
 #include <stdio.h>
+#include <sys/stat.h>
+
 #include <list>
 #include <string>
 #include <vector>
-#include <log/log.h>
+
 #include "android_logmsg.h"
-#include <sys/stat.h>
 const char alternative_config_path[] = "";
 const char* transport_config_paths[] = {"/odm/etc/", "/vendor/etc/", "/etc/"};
 
@@ -142,8 +144,7 @@ inline int getDigitValue(char c, int base) {
 ** Returns:     none
 **
 *******************************************************************************/
-void findConfigFile(const string& configName,
-                                                string& filePath) {
+void findConfigFile(const string& configName, string& filePath) {
   for (int i = 0; i < transport_config_path_size - 1; i++) {
     filePath.assign(transport_config_paths[i]);
     filePath += configName;
@@ -189,15 +190,15 @@ bool CNfcConfig::readConfig(const char* name, bool bResetContent) {
   state = BEGIN_LINE;
   /* open config file, read it into a buffer */
   if ((fd = fopen(name, "rb")) == NULL) {
-      STLOG_HAL_W("%s Cannot open config file %s\n", __func__, name);
+    STLOG_HAL_W("%s Cannot open config file %s\n", __func__, name);
     if (bResetContent) {
-        STLOG_HAL_W("%s Using default value for all settings\n", __func__);
+      STLOG_HAL_W("%s Using default value for all settings\n", __func__);
       mValidFile = false;
     }
     return false;
   }
   STLOG_HAL_D("%s Opened %s config %s\n", __func__,
-        (bResetContent ? "base" : "optional"), name);
+              (bResetContent ? "base" : "optional"), name);
 
   mValidFile = true;
   if (size() > 0) {
@@ -259,13 +260,13 @@ bool CNfcConfig::readConfig(const char* name, bool bResetContent) {
           state = NUM_VALUE;
           base = 10;
           numValue = getDigitValue(c, base);
-          i=0;
+          i = 0;
           break;
         } else if (c != '\n' && c != '\r') {
           state = END_LINE;
           break;
         }
-        [[fallthrough]]; // fall through to numValue to handle numValue
+        [[fallthrough]];  // fall through to numValue to handle numValue
 
       case NUM_VALUE:
         if (isDigit(c, base)) {
@@ -388,7 +389,7 @@ CNfcConfig& CNfcConfig::GetInstance() {
 *******************************************************************************/
 bool CNfcConfig::getValue(const char* name, char* pValue, size_t& len) const {
   const CNfcParam* pParam = find(name);
-  if (pParam == NULL || pValue== NULL) return false;
+  if (pParam == NULL || pValue == NULL) return false;
 
   if (pParam->str_len() > 0) {
     memset(pValue, 0, len);
@@ -460,7 +461,8 @@ const CNfcParam* CNfcConfig::find(const char* p_name) const {
       if ((*it)->str_len() > 0) {
         STLOG_HAL_D("%s found %s=%s\n", __func__, p_name, (*it)->str_value());
       } else {
-        STLOG_HAL_D("%s found %s=(0x%lX)\n", __func__, p_name, (*it)->numValue());
+        STLOG_HAL_D("%s found %s=(0x%lX)\n", __func__, p_name,
+                    (*it)->numValue());
       }
       return *it;
     } else
@@ -499,8 +501,8 @@ void CNfcConfig::add(const CNfcParam* pParam) {
     m_list.push_back(pParam);
     return;
   }
-  for (list<const CNfcParam *>::iterator it = m_list.begin(),
-                                         itEnd = m_list.end();
+  for (list<const CNfcParam*>::iterator it = m_list.begin(),
+                                        itEnd = m_list.end();
        it != itEnd; ++it) {
     if (**it < pParam->c_str()) continue;
     m_list.insert(it, pParam);
@@ -521,8 +523,8 @@ void CNfcConfig::add(const CNfcParam* pParam) {
 void CNfcConfig::moveFromList() {
   if (m_list.size() == 0) return;
 
-  for (list<const CNfcParam *>::iterator it = m_list.begin(),
-                                         itEnd = m_list.end();
+  for (list<const CNfcParam*>::iterator it = m_list.begin(),
+                                        itEnd = m_list.end();
        it != itEnd; ++it)
     push_back(*it);
   m_list.clear();

@@ -21,8 +21,8 @@
 #include <android-base/properties.h>
 #include <android/hardware/nfc/1.1/INfc.h>
 #include <dlfcn.h>
-
 #include <hidl/LegacySupport.h>
+
 #include "Nfc.h"
 
 #if defined(ST_LIB_32)

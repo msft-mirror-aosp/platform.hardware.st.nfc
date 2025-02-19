@@ -27,6 +27,7 @@ extern "C" {
 
 #include <cutils/properties.h>
 #include <log/log.h>
+
 #include "data_types.h"
 
 #define DISP_NCI ProtoDispAdapterDisplayNciPacket
@@ -68,10 +69,10 @@ extern int GetStrValue(const char* name, char* pValue, unsigned long l);
 #define STNFC_TRACE_LEVEL_MASK 0x0F
 #define STNFC_TRACE_FLAG_PRIVACY 0x10
 
-#define STLOG_HAL_V(...)                                    \
-  {                                                         \
-    if ((hal_trace_level & STNFC_TRACE_LEVEL_MASK) >=       \
-        STNFC_TRACE_LEVEL_VERBOSE)                          \
+#define STLOG_HAL_V(...)                                      \
+  {                                                           \
+    if ((hal_trace_level & STNFC_TRACE_LEVEL_MASK) >=         \
+        STNFC_TRACE_LEVEL_VERBOSE)                            \
       LOG_PRI(ANDROID_LOG_VERBOSE, HAL_LOG_TAG, __VA_ARGS__); \
   }
 #define STLOG_HAL_D(...)                                                       \

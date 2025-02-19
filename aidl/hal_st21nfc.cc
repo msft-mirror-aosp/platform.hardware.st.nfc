@@ -28,9 +28,9 @@
 #include "StNfc_hal_api.h"
 #include "android_logmsg.h"
 #include "hal_config.h"
+#include "hal_fd.h"
 #include "halcore.h"
 #include "st21nfc_dev.h"
-#include "hal_fd.h"
 
 #if defined(ST_LIB_32)
 #define VENDOR_LIB_PATH "/vendor/lib/"
@@ -314,7 +314,8 @@ int StNfc_hal_write(uint16_t data_len, const uint8_t* p_data) {
   STLOG_HAL_D("HAL st21nfc: %s", __func__);
 
   uint8_t NCI_ANDROID_PASSIVE_OBSERVER_PREFIX[] = {0x2f, 0x0c, 0x02, 0x02};
-  uint8_t NCI_ANDROID_PASSIVE_OBSERVER_PER_TECH_PREFIX[] = {0x2f, 0x0c, 0x02, 0x05};
+  uint8_t NCI_ANDROID_PASSIVE_OBSERVER_PER_TECH_PREFIX[] = {0x2f, 0x0c, 0x02,
+                                                            0x05};
   uint8_t NCI_QUERY_ANDROID_PASSIVE_OBSERVER_PREFIX[] = {0x2f, 0x0c, 0x01, 0x4};
   uint8_t RF_GET_LISTEN_OBSERVE_MODE_STATE[5] = {0x21, 0x17, 0x00};
   uint8_t RF_SET_LISTEN_OBSERVE_MODE_STATE[4] = {0x21, 0x16, 0x01, 0x0};
@@ -375,8 +376,8 @@ int StNfc_hal_write(uint16_t data_len, const uint8_t* p_data) {
       return 0;
     }
   } else if (data_len == 5 &&
-           !memcmp(p_data, NCI_ANDROID_PASSIVE_OBSERVER_PER_TECH_PREFIX,
-                   sizeof(NCI_ANDROID_PASSIVE_OBSERVER_PER_TECH_PREFIX))) {
+             !memcmp(p_data, NCI_ANDROID_PASSIVE_OBSERVER_PER_TECH_PREFIX,
+                     sizeof(NCI_ANDROID_PASSIVE_OBSERVER_PER_TECH_PREFIX))) {
     mSetObserve = RF_SET_LISTEN_OBSERVE_MODE_STATE;
     mSetObserve_size = 4;
     if (p_data[4]) {
