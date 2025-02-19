@@ -39,7 +39,8 @@ cc_library_shared {
         "hal/halcore.cc",
         "hal_wrapper.cc",
         "hal/hal_fwlog.cc",
-	"hal/hal_fd.cc",
+        "hal/hal_fd.cc",
+        "hal/hal_event_logger.cc",
     ],
 
     local_include_dirs: [
