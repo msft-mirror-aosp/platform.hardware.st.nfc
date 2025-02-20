@@ -32,9 +32,9 @@
 #include <unistd.h>
 
 #include "android_logmsg.h"
+#include "hal_config.h"
 #include "halcore.h"
 #include "halcore_private.h"
-#include "hal_config.h"
 
 #define ST21NFC_MAGIC 0xEA
 
@@ -93,7 +93,7 @@ static void* I2cWorkerThread(void* arg) {
   STLOG_HAL_D("echo thread started...\n");
   bool readOk = false;
   int eventNum = (notifyResetRequest <= 0) ? 2 : 3;
-  bool reseting = false;
+  bool resetting= false;
 
   do {
     event_table[0].fd = fidI2c;
@@ -232,9 +232,9 @@ static void* I2cWorkerThread(void* arg) {
       if (byte < 10) {
         reset[byte] = '\0';
       }
-      if (byte > 0 && reset[0] =='1' && reseting == false) {
+      if (byte > 0 && reset[0] == '1' && resetting== false) {
         STLOG_HAL_E("trigger NFCC reset.. \n");
-        reseting = true;
+        resetting= true;
         i2cResetPulse(fidI2c);
       }
     }
@@ -278,18 +278,19 @@ bool I2cOpenLayer(void* dev, HAL_CALLBACK callb, HALHANDLE* pHandle) {
   char nfc_reset_req_node[128];
 
   /*Read device node path*/
-  if (!GetStrValue(NAME_ST_NFC_DEV_NODE, (char *)nfc_dev_node,
+  if (!GetStrValue(NAME_ST_NFC_DEV_NODE, (char*)nfc_dev_node,
                    sizeof(nfc_dev_node))) {
     STLOG_HAL_D("Open /dev/st21nfc\n");
     strcpy(nfc_dev_node, "/dev/st21nfc");
   }
   /*Read nfcc reset request sysfs*/
-  if (GetStrValue(NAME_ST_NFC_RESET_REQ_SYSFS, (char *)nfc_reset_req_node,
+  if (GetStrValue(NAME_ST_NFC_RESET_REQ_SYSFS, (char*)nfc_reset_req_node,
                   sizeof(nfc_reset_req_node))) {
     STLOG_HAL_D("Open %s\n", nfc_reset_req_node);
     notifyResetRequest = open(nfc_reset_req_node, O_RDONLY);
     if (notifyResetRequest < 0) {
-      STLOG_HAL_E("unable to open %s (%s) \n", nfc_reset_req_node, strerror(errno));
+      STLOG_HAL_E("unable to open %s (%s) \n", nfc_reset_req_node,
+                  strerror(errno));
     }
   }
 
@@ -508,7 +509,6 @@ redo:
     result = write(fid, pvBuffer, length);
 
     if (result < 0) {
-
       strerror_r(errno, msg, LINUX_DBGBUFFER_SIZE);
       STLOG_HAL_W("! i2cWrite!!, errno is '%s'", msg);
       usleep(4000);
@@ -571,8 +571,7 @@ static int i2cRead(int fid, uint8_t* pvBuffer, int length) {
       int delay = delayTab[retries];
 
       retries++;
-      STLOG_HAL_W("## i2cRead retry %d/3 in %d milliseconds.", retries,
-                  delay);
+      STLOG_HAL_W("## i2cRead retry %d/3 in %d milliseconds.", retries, delay);
       usleep(delay * 1000);
       continue;
     }

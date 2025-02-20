@@ -42,7 +42,6 @@ typedef struct FWInfo {
   uint8_t chipProdType;
 } FWInfo;
 
-
 /*
  *Structure containing capabilities
  */
@@ -98,9 +97,9 @@ void FwUpdateHandler(HALHANDLE mHalHandle, uint16_t data_len, uint8_t* p_data);
 void ApplyCustomParamHandler(HALHANDLE mHalHandle, uint16_t data_len,
                              uint8_t* p_data);
 void ApplyUwbParamHandler(HALHANDLE mHalHandle, uint16_t data_len,
-                             uint8_t* p_data);
+                          uint8_t* p_data);
 void resetHandlerState();
-bool ft_CheckUWBConf() ;
+bool ft_CheckUWBConf();
 FWInfo* hal_fd_getFwInfo();
 FWCap* hal_fd_getFwCap();
 #endif /* HAL_FD_H_ */

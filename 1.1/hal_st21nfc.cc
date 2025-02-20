@@ -340,7 +340,7 @@ int StNfc_hal_core_initialized(uint8_t* p_core_init_rsp_params) {
   hal_dta_state = *p_core_init_rsp_params;
 
   hal_wrapper_send_config();
-  (void) pthread_mutex_unlock(&hal_mtx);
+  (void)pthread_mutex_unlock(&hal_mtx);
 
   return 0;  // return != 0 to signal ready immediate
 }
@@ -410,8 +410,8 @@ int StNfc_hal_power_cycle() {
 
 void StNfc_hal_factoryReset() {
   STLOG_HAL_D("HAL st21nfc: %s", __func__);
-  //hal_wrapper_factoryReset();
-  // Nothing needed for factory reset in st21nfc case.
+  // hal_wrapper_factoryReset();
+  //  Nothing needed for factory reset in st21nfc case.
 }
 
 int StNfc_hal_closeForPowerOffCase() {

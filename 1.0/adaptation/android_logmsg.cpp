@@ -17,6 +17,7 @@
  *
  ******************************************************************************/
 #include "android_logmsg.h"
+
 #include "halcore.h"
 
 void DispHal(const char* title, const void* data, size_t length);
@@ -70,7 +71,7 @@ void DispHal(const char* title, const void* data, size_t length) {
     STLOG_HAL_D("%s", title);
     return;
   } else {
-      STLOG_HAL_D("%s: ", title);
+    STLOG_HAL_D("%s: ", title);
   }
   for (i = 0, k = 0; i < length; i++, k++) {
     if (k > 31) {
@@ -78,14 +79,14 @@ void DispHal(const char* title, const void* data, size_t length) {
       if (first_line == true) {
         first_line = false;
         if (title[0] == 'R') {
-            STLOG_HAL_D("Rx %s\n", line);
+          STLOG_HAL_D("Rx %s\n", line);
         } else if (title[0] == 'T') {
-            STLOG_HAL_D("Tx %s\n", line);
+          STLOG_HAL_D("Tx %s\n", line);
         } else {
-            STLOG_HAL_D("%s\n", line);
+          STLOG_HAL_D("%s\n", line);
         }
       } else {
-          STLOG_HAL_D("%s\n", line);
+        STLOG_HAL_D("%s\n", line);
       }
       line[k] = 0;
     }
@@ -94,13 +95,13 @@ void DispHal(const char* title, const void* data, size_t length) {
 
   if (first_line == true) {
     if (title[0] == 'R') {
-        STLOG_HAL_D("Rx %s\n", line);
+      STLOG_HAL_D("Rx %s\n", line);
     } else if (title[0] == 'T') {
-        STLOG_HAL_D("Tx %s\n", line);
+      STLOG_HAL_D("Tx %s\n", line);
     } else {
-        STLOG_HAL_D("%s\n", line);
+      STLOG_HAL_D("%s\n", line);
     }
   } else {
-      STLOG_HAL_D("%s\n", line);
+    STLOG_HAL_D("%s\n", line);
   }
 }

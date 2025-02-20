@@ -20,17 +20,17 @@
 #define __HALCORE_H_
 
 #include <errno.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <pthread.h>
 
 /* events sent from the callback */
 #define HAL_EVENT_DSWRITE 1  /* write raw HAL data downstream   */
 #define HAL_EVENT_DATAIND 2  /* new NCI frame received from CLF  */
 #define HAL_EVENT_LINKLOST 3 /* connection/link lost             */
 #define HAL_EVENT_ERROR 4    /* protocol got into an error state */
-#define HAL_EVENT_JUNKRECEIVED                                        \
+#define HAL_EVENT_JUNKRECEIVED \
   5 /* protocol signals that junk has been received. resyncronization */
 
 #define HAL_EVENT_TIMER_TIMEOUT 6
