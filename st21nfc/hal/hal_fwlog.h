@@ -23,7 +23,7 @@
 
 #include "halcore.h"
 
-    static const int T_CERx = 0x09;
+static const int T_CERx = 0x09;
 static const int T_fieldOn = 0x10;
 static const int T_fieldOff = 0x11;
 static const int T_CERxError = 0x19;

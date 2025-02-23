@@ -429,8 +429,8 @@ int StNfc_hal_power_cycle() {
 
 void StNfc_hal_factoryReset() {
   STLOG_HAL_D("HAL st21nfc: %s", __func__);
-  //hal_wrapper_factoryReset();
-  // Nothing needed for factory reset in st21nfc case.
+  // hal_wrapper_factoryReset();
+  //  Nothing needed for factory reset in st21nfc case.
 }
 
 int StNfc_hal_closeForPowerOffCase() {

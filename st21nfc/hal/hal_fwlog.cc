@@ -19,21 +19,23 @@
 #define LOG_TAG "NfcHalFwLog"
 
 #include "hal_fwlog.h"
+
 #include <cutils/properties.h>
 #include <dlfcn.h>
 #include <errno.h>
 #include <hardware/nfc.h>
 #include <string.h>
+
 #include "android_logmsg.h"
-#include "halcore.h"
 #include "hal_fd.h"
+#include "halcore.h"
 
 extern void DispHal(const char* title, const void* data, size_t length);
 
 uint8_t handlePollingLoopData(uint8_t format, uint8_t* tlvBuffer,
                               uint16_t data_len, uint8_t** NewTlv) {
   uint8_t value_len = 0;
-  uint8_t flag= 0;
+  uint8_t flag = 0;
 
   uint32_t timestamp = (tlvBuffer[data_len - 4] << 24) |
                        (tlvBuffer[data_len - 3] << 16) |
@@ -77,14 +79,14 @@ uint8_t handlePollingLoopData(uint8_t format, uint8_t* tlvBuffer,
 
       // work-around type-A short frame notification bug
       if (hal_fd_getFwInfo()->chipHwVersion == HW_ST54J &&
-          (tlvBuffer[2] & 0xF) == 0x01 && // short frame
-          tlvBuffer[5] == 0x00 && // no error
-          tlvBuffer[6] == 0x0F // incorrect real size
-          ) {
+          (tlvBuffer[2] & 0xF) == 0x01 &&  // short frame
+          tlvBuffer[5] == 0x00 &&          // no error
+          tlvBuffer[6] == 0x0F             // incorrect real size
+      ) {
         tlv_size = 9;
       }
 
-      value_len = tlv_size- 3;
+      value_len = tlv_size - 3;
       *NewTlv = (uint8_t*)malloc(tlv_size * sizeof(uint8_t));
       uint8_t gain;
       uint8_t type;
@@ -93,9 +95,9 @@ uint8_t handlePollingLoopData(uint8_t format, uint8_t* tlvBuffer,
 
       switch (tlvBuffer[2] & 0xF) {
         case 0x1:
-           flag |= 0x01;
-           type = TYPE_A;
-           break;
+          flag |= 0x01;
+          type = TYPE_A;
+          break;
         case 0x2:
         case 0x3:
         case 0x4:
@@ -103,11 +105,11 @@ uint8_t handlePollingLoopData(uint8_t format, uint8_t* tlvBuffer,
         case 0x6:
         case 0xB:
         case 0xD:
-            type = TYPE_A;
+          type = TYPE_A;
           break;
         case 0x7:
         case 0xC:
-            type = TYPE_B;
+          type = TYPE_B;
           break;
         case 0x8:
         case 0x9:
@@ -137,8 +139,8 @@ uint8_t handlePollingLoopData(uint8_t format, uint8_t* tlvBuffer,
       (*NewTlv)[6] = ts & 0xFF;
       (*NewTlv)[7] = gain;
       if (tlv_size > 8) {
-      memcpy(*NewTlv + 8, tlvBuffer + 8, length_value);
-    }
+        memcpy(*NewTlv + 8, tlvBuffer + 8, length_value);
+      }
     } break;
     default:
       break;
@@ -169,7 +171,6 @@ int notifyPollingLoopFrames(uint8_t* p_data, uint16_t data_len,
                                     &tlvFormatted);
 
     if (tlvFormatted != NULL) {
-
       if (ObserverNtf == NULL) {
         ObserverNtf = (uint8_t*)malloc(4 * sizeof(uint8_t));
         memcpy(ObserverNtf, NCI_ANDROID_PASSIVE_OBSERVER_HEADER, 4);

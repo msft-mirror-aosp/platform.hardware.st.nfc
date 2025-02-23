@@ -17,6 +17,7 @@
  *
  ******************************************************************************/
 #include "android_logmsg.h"
+
 #include <pthread.h>
 #include <stdio.h>
 

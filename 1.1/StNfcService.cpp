@@ -19,8 +19,8 @@
 
 #define LOG_TAG "stnfc@1.1-service.st"
 #include <android/hardware/nfc/1.1/INfc.h>
-
 #include <hidl/LegacySupport.h>
+
 #include "Nfc.h"
 
 // Generated HIDL files

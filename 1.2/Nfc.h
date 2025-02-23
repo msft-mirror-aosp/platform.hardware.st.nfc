@@ -32,15 +32,15 @@ namespace nfc {
 namespace V1_2 {
 namespace implementation {
 
-using ::android::hidl::base::V1_0::IBase;
-using ::android::hardware::nfc::V1_2::INfc;
+using ::android::sp;
 using ::android::hardware::hidl_array;
 using ::android::hardware::hidl_memory;
 using ::android::hardware::hidl_string;
 using ::android::hardware::hidl_vec;
 using ::android::hardware::Return;
 using ::android::hardware::Void;
-using ::android::sp;
+using ::android::hardware::nfc::V1_2::INfc;
+using ::android::hidl::base::V1_0::IBase;
 struct Nfc : public V1_2::INfc, public hidl_death_recipient {
  public:
   // Methods from ::android::hardware::nfc::V1_0::INfc follow.
@@ -99,8 +99,7 @@ struct Nfc : public V1_2::INfc, public hidl_death_recipient {
 
   virtual void serviceDied(uint64_t cookie, const wp<IBase>& /*who*/) {
     pthread_mutex_lock(&mLockOpenClose);
-    ALOGE("serviceDied!!! %llu, %llu, %s, %s",
-          (unsigned long long)cookie,
+    ALOGE("serviceDied!!! %llu, %llu, %s, %s", (unsigned long long)cookie,
           (unsigned long long)mOpenCount,
           (mCallbackV1_0 == nullptr ? "null" : "defined"),
           (mCallbackV1_1 == nullptr ? "null" : "defined"));
