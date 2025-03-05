@@ -611,3 +611,5 @@ void StNfc_hal_setLogging(bool enable) {
 }
 
 bool StNfc_hal_isLoggingEnabled() { return dbg_logging; }
+
+void StNfc_hal_dump(int fd) { hal_wrapper_dumplog(fd); }
