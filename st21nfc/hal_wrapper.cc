@@ -39,6 +39,7 @@ extern void I2cRecovery();
 
 static void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data);
 static void halWrapperCallback(uint8_t event, uint8_t event_status);
+static std::string hal_wrapper_state_to_str(uint16_t event);
 
 nfc_stack_callback_t* mHalWrapperCallback = NULL;
 nfc_stack_data_callback_t* mHalWrapperDataCallback = NULL;
@@ -81,6 +82,7 @@ static bool sEnableFwLog = false;
 uint8_t mObserverMode = 0;
 bool mObserverRsp = false;
 bool mPerTechCmdRsp = false;
+bool storedLog = false;
 
 void wait_ready() {
   pthread_mutex_lock(&mutex);
@@ -794,7 +796,8 @@ static void halWrapperCallback(uint8_t event,
         I2cRecovery();
         HalEventLogger::getInstance().log()
             << __func__ << " Timeout accessing the CLF."
-            << " mHalWrapperState=" << mHalWrapperState
+            << " mHalWrapperState="
+            << hal_wrapper_state_to_str(mHalWrapperState)
             << " mIsActiveRW=" << mIsActiveRW
             << " mTimerStarted=" << mTimerStarted << std::endl;
         HalEventLogger::getInstance().store_log();
@@ -817,7 +820,8 @@ static void halWrapperCallback(uint8_t event,
                     __func__);
         HalEventLogger::getInstance().log()
             << __func__ << " Timer for FW update procedure timeout, retry"
-            << " mHalWrapperState=" << mHalWrapperState
+            << " mHalWrapperState="
+            << hal_wrapper_state_to_str(mHalWrapperState)
             << " mIsActiveRW=" << mIsActiveRW
             << " mTimerStarted=" << mTimerStarted << std::endl;
         HalEventLogger::getInstance().store_log();
@@ -845,7 +849,8 @@ static void halWrapperCallback(uint8_t event,
         STLOG_HAL_E("%s - Timer when sending conf parameters, retry", __func__);
         HalEventLogger::getInstance().log()
             << __func__ << " Timer when sending conf parameters, retry"
-            << " mHalWrapperState=" << mHalWrapperState
+            << " mHalWrapperState="
+            << hal_wrapper_state_to_str(mHalWrapperState)
             << " mIsActiveRW=" << mIsActiveRW
             << " mTimerStarted=" << mTimerStarted << std::endl;
         HalEventLogger::getInstance().store_log();
@@ -890,8 +895,17 @@ static void halWrapperCallback(uint8_t event,
 
     default:
       if (event == HAL_WRAPPER_TIMEOUT_EVT) {
-        STLOG_HAL_E("NFC-NCI HAL: %s  Timeout at state: %d", __func__,
-                    mHalWrapperState);
+        STLOG_HAL_E("NFC-NCI HAL: %s  Timeout at state: %s", __func__,
+                    hal_wrapper_state_to_str(mHalWrapperState).c_str());
+        if (!storedLog) {
+          HalEventLogger::getInstance().log()
+              << __func__ << " Timeout at state: "
+              << hal_wrapper_state_to_str(mHalWrapperState)
+              << " mIsActiveRW=" << mIsActiveRW
+              << " mTimerStarted=" << mTimerStarted << std::endl;
+          HalEventLogger::getInstance().store_log();
+          storedLog = true;
+        }
       }
       break;
   }
@@ -942,4 +956,48 @@ void hal_wrapper_dumplog(int fd) {
   ALOGD("%s : fd= %d", __func__, fd);
 
   HalEventLogger::getInstance().dump_log(fd);
+}
+
+/*******************************************************************************
+**
+** Function         hal_wrapper_state_to_str
+**
+** Description      convert wrapper state to string
+**
+** Returns          string
+**
+*******************************************************************************/
+static std::string hal_wrapper_state_to_str(uint16_t event) {
+  switch (event) {
+    case HAL_WRAPPER_STATE_CLOSED:
+      return "HAL_WRAPPER_STATE_CLOSED";
+    case HAL_WRAPPER_STATE_OPEN:
+      return "HAL_WRAPPER_STATE_OPEN";
+    case HAL_WRAPPER_STATE_OPEN_CPLT:
+      return "HAL_WRAPPER_STATE_OPEN_CPLT";
+    case HAL_WRAPPER_STATE_NFC_ENABLE_ON:
+      return "HAL_WRAPPER_STATE_NFC_ENABLE_ON";
+    case HAL_WRAPPER_STATE_PROP_CONFIG:
+      return "HAL_WRAPPER_STATE_PROP_CONFIG";
+    case HAL_WRAPPER_STATE_READY:
+      return "HAL_WRAPPER_STATE_READY";
+    case HAL_WRAPPER_STATE_CLOSING:
+      return "HAL_WRAPPER_STATE_CLOSING";
+    case HAL_WRAPPER_STATE_EXIT_HIBERNATE_INTERNAL:
+      return "HAL_WRAPPER_STATE_EXIT_HIBERNATE_INTERNAL";
+    case HAL_WRAPPER_STATE_UPDATE:
+      return "HAL_WRAPPER_STATE_UPDATE";
+    case HAL_WRAPPER_STATE_APPLY_CUSTOM_PARAM:
+      return "HAL_WRAPPER_STATE_APPLY_CUSTOM_PARAM";
+    case HAL_WRAPPER_STATE_APPLY_UWB_PARAM:
+      return "HAL_WRAPPER_STATE_APPLY_UWB_PARAM";
+    case HAL_WRAPPER_STATE_SET_ACTIVERW_TIMER:
+      return "HAL_WRAPPER_STATE_SET_ACTIVERW_TIMER";
+    case HAL_WRAPPER_STATE_APPLY_PROP_CONFIG:
+      return "HAL_WRAPPER_STATE_APPLY_PROP_CONFIG";
+    case HAL_WRAPPER_STATE_RECOVERY:
+      return "HAL_WRAPPER_STATE_RECOVERY";
+    default:
+      return "Unknown";
+  }
 }
