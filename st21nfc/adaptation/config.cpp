@@ -20,6 +20,8 @@
  *
  *
  ******************************************************************************/
+#include "config.h"
+
 #include <android-base/properties.h>
 #include <log/log.h>
 #include <stdio.h>
