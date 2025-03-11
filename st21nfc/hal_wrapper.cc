@@ -597,7 +597,7 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
             if (hal_field_timer) {
               mFieldInfoTimerStarted = true;
               HalEventLogger::getInstance().log()
-                  << __func__ << " " << __LINE__ << std::endl;
+                  << __func__ << " LINE: " << __LINE__ << std::endl;
               HalSendDownstreamTimer(mHalHandle, 20000);
             }
           } else if (p_data[3] == 0x00) {
@@ -611,9 +611,6 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
           // start timer
           mTimerStarted = true;
           mIsActiveRW = true;
-          HalEventLogger::getInstance().log()
-              << __func__ << " " << __LINE__ << std::endl;
-          HalSendDownstreamTimer(mHalHandle, 5000);
           (void)pthread_mutex_unlock(&mutex_activerw);
         } else if ((p_data[0] == 0x6f) && (p_data[1] == 0x06)) {
           (void)pthread_mutex_lock(&mutex_activerw);
