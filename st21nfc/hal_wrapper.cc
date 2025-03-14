@@ -586,7 +586,13 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
         DispHal("RX DATA", (p_data), data_len);
       } else if ((p_data[0] == 0x6f) && (p_data[1] == 0x1b)) {
         // PROP_RF_OBSERVE_MODE_SUSPENDED_NTF
+
+        // Remove two byte CRC at end of frame.
+        data_len -= 2;
+        p_data[2] -= 2;
+        p_data[4] -= 2;
         memcpy(nciAndroidPassiveObserver, p_data + 3, data_len - 3);
+
         p_data[0] = 0x6f;
         p_data[1] = 0x0c;
         p_data[2] = p_data[2] + 1;
