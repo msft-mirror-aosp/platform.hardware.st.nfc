@@ -575,6 +575,35 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
           data_len = 0x6;
         }
       }
+
+      if ((p_data[0] == 0x4f) && (p_data[1] == 0x19)) {
+        p_data[4] = p_data[3];
+        p_data[0] = 0x4f;
+        p_data[1] = 0x0c;
+        p_data[2] = 0x02;
+        p_data[3] = 0x06;
+        data_len = 0x5;
+        DispHal("RX DATA", (p_data), data_len);
+      } else if ((p_data[0] == 0x6f) && (p_data[1] == 0x1b)) {
+        // PROP_RF_OBSERVE_MODE_SUSPENDED_NTF
+        memcpy(nciAndroidPassiveObserver, p_data + 3, data_len - 3);
+        p_data[0] = 0x6f;
+        p_data[1] = 0x0c;
+        p_data[2] = p_data[2] + 1;
+        p_data[3] = 0xB;
+        memcpy(p_data + 4, nciAndroidPassiveObserver, data_len - 3);
+        data_len = data_len + 1;
+        DispHal("RX DATA", (p_data), data_len);
+      } else if ((p_data[0] == 0x6f) && (p_data[1] == 0x1c)) {
+        // PROP_RF_OBSERVE_MODE_RESUMED_NTF
+        p_data[0] = 0x6f;
+        p_data[1] = 0x0c;
+        p_data[2] = p_data[2] + 1;
+        p_data[3] = 0xC;
+        data_len = data_len + 1;
+        DispHal("RX DATA", (p_data), data_len);
+      }
+
       if (!((p_data[0] == 0x60) && (p_data[3] == 0xa0))) {
         if (mHciCreditLent && (p_data[0] == 0x60) && (p_data[1] == 0x06)) {
           if (p_data[4] == 0x01) {  // HCI connection

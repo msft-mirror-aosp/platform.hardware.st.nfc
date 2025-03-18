@@ -54,6 +54,7 @@ uint8_t hal_is_closed = 1;
 pthread_mutex_t hal_mtx = PTHREAD_MUTEX_INITIALIZER;
 st21nfc_dev_t dev;
 int nfc_mode = 0;
+uint8_t nci_cmd[256];
 
 /*
  * NCI HAL method implementations. These must be overridden
@@ -317,6 +318,7 @@ int StNfc_hal_write(uint16_t data_len, const uint8_t* p_data) {
   uint8_t NCI_ANDROID_PASSIVE_OBSERVER_PER_TECH_PREFIX[] = {0x2f, 0x0c, 0x02,
                                                             0x05};
   uint8_t NCI_QUERY_ANDROID_PASSIVE_OBSERVER_PREFIX[] = {0x2f, 0x0c, 0x01, 0x4};
+  uint8_t NCI_ANDROID_PREFIX[] = {0x2f, 0x0c};
   uint8_t RF_GET_LISTEN_OBSERVE_MODE_STATE[5] = {0x21, 0x17, 0x00};
   uint8_t RF_SET_LISTEN_OBSERVE_MODE_STATE[4] = {0x21, 0x16, 0x01, 0x0};
   uint8_t CORE_GET_CONFIG_OBSERVER[5] = {0x20, 0x03, 0x02, 0x01, 0xa3};
@@ -386,6 +388,18 @@ int StNfc_hal_write(uint16_t data_len, const uint8_t* p_data) {
     mSetObserve[3] = mTechObserved;
     hal_wrapper_set_observer_mode(mTechObserved, true);
     if (!HalSendDownstream(dev.hHAL, mSetObserve, mSetObserve_size)) {
+      STLOG_HAL_E("HAL st21nfc %s  SendDownstream failed", __func__);
+      (void)pthread_mutex_unlock(&hal_mtx);
+      return 0;
+    }
+  } else if (!memcmp(p_data, NCI_ANDROID_PREFIX, sizeof(NCI_ANDROID_PREFIX)) &&
+             p_data[3] == 0x9) {
+    DispHal("TX DATA", (p_data), data_len);
+    memcpy(nci_cmd + 3, p_data + 4, data_len - 4);
+    nci_cmd[0] = 0x2f;
+    nci_cmd[1] = 0x1d;
+    nci_cmd[2] = p_data[2] - 1;
+    if (!HalSendDownstream(dev.hHAL, nci_cmd, nci_cmd[2] + 3)) {
       STLOG_HAL_E("HAL st21nfc %s  SendDownstream failed", __func__);
       (void)pthread_mutex_unlock(&hal_mtx);
       return 0;
