@@ -42,8 +42,9 @@ static bool rf_deactivate_delay;
 struct timespec start_tx_data;
 uint8_t NCI_ANDROID_GET_CAPS[] = {0x2f, 0x0c, 0x01, 0x0};
 uint8_t NCI_ANDROID_GET_CAPS_RSP[] = {
-    0x4f, 0x0c, 0x0e, 0x00, 0x00, 0x00,
-    0x00, 0x03, 0x00, 0x01, 0x01,  // Passive Observe mode
+    0x4f, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x04,                          // Number of capabilities
+    0x00, 0x01, 0x01,              // Passive Observe mode
     0x01, 0x01, 0x01,              // Polling frame ntf
     0x03, 0x01, 0x00,              // Autotransact polling loop filter
     0x05, 0x01, 0x01               // Polling loop annotations
@@ -115,9 +116,20 @@ void HalCoreCallback(void* context, uint32_t event, const void* d,
       DispHal("TX DATA", (data), length);
       if (length == 4 &&
           !memcmp(data, NCI_ANDROID_GET_CAPS, sizeof(NCI_ANDROID_GET_CAPS))) {
+        NCI_ANDROID_GET_CAPS_RSP[2] = sizeof(NCI_ANDROID_GET_CAPS_RSP) - 3;
         NCI_ANDROID_GET_CAPS_RSP[10] = hal_fd_getFwCap()->ObserveMode;
+        uint8_t FWVersionMajor = (uint8_t)(hal_fd_getFwInfo()->chipFwVersion >> 24);
+        uint8_t FWVersionMinor =
+          (uint8_t)((hal_fd_getFwInfo()->chipFwVersion & 0x00FF0000) >> 16);
+        // Declare support for reader mode annotation only if fw version >= 2.06.
+        if (hal_fd_getFwInfo()->chipHwVersion == HW_ST54L &&
+          (FWVersionMajor >= 0x2) && (FWVersionMinor >= 0x6)) {
+            NCI_ANDROID_GET_CAPS_RSP[19] = 1;
+        } else {
+            NCI_ANDROID_GET_CAPS_RSP[19] = 0;
+        }
 
-        dev->p_data_cback(NCI_ANDROID_GET_CAPS_RSP[2] + 3,
+        dev->p_data_cback(sizeof(NCI_ANDROID_GET_CAPS_RSP),
                           NCI_ANDROID_GET_CAPS_RSP);
       } else {
         // Send write command to IO thread
