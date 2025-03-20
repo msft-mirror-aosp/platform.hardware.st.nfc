@@ -217,6 +217,7 @@ void hal_wrapper_set_observer_mode(uint8_t enable, bool per_tech_cmd) {
   mObserverMode = enable;
   mObserverRsp = true;
   mPerTechCmdRsp = per_tech_cmd;
+  mObserveModeSuspended = false;
 }
 void hal_wrapper_get_observer_mode() { mObserverRsp = true; }
 
