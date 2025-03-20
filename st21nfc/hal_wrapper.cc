@@ -83,6 +83,7 @@ uint8_t mObserverMode = 0;
 bool mObserverRsp = false;
 bool mPerTechCmdRsp = false;
 bool storedLog = false;
+bool mObserveModeSuspended = false;
 
 void wait_ready() {
   pthread_mutex_lock(&mutex);
@@ -117,6 +118,7 @@ bool hal_wrapper_open(st21nfc_dev_t* dev, nfc_stack_callback_t* p_cback,
 
   mObserverMode = 0;
   mObserverRsp = false;
+  mObserveModeSuspended = false;
 
   mHalWrapperCallback = p_cback;
   mHalWrapperDataCallback = p_data_cback;
@@ -559,7 +561,11 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
               STLOG_HAL_E("mObserverMode got out of sync");
               mObserverMode = p_data[4];
             }
+            if (!mObserveModeSuspended) {
             p_data[5] = p_data[4];
+            } else {
+              p_data[5] =  0x00;
+            }
           } else {
             if (p_data[7] != mObserverMode) {
               STLOG_HAL_E("mObserverMode got out of sync");
@@ -573,6 +579,7 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
           p_data[3] = 0x04;
           p_data[4] = rsp_status;
           data_len = 0x6;
+          DispHal("RX DATA", (p_data), data_len);
         }
       }
 
@@ -586,7 +593,7 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
         DispHal("RX DATA", (p_data), data_len);
       } else if ((p_data[0] == 0x6f) && (p_data[1] == 0x1b)) {
         // PROP_RF_OBSERVE_MODE_SUSPENDED_NTF
-
+        mObserveModeSuspended = true;
         // Remove two byte CRC at end of frame.
         data_len -= 2;
         p_data[2] -= 2;
@@ -602,6 +609,8 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
         DispHal("RX DATA", (p_data), data_len);
       } else if ((p_data[0] == 0x6f) && (p_data[1] == 0x1c)) {
         // PROP_RF_OBSERVE_MODE_RESUMED_NTF
+        mObserveModeSuspended = false;
+
         p_data[0] = 0x6f;
         p_data[1] = 0x0c;
         p_data[2] = p_data[2] + 1;
