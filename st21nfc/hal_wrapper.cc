@@ -818,6 +818,8 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
       }
       break;
     case HAL_WRAPPER_STATE_RECOVERY:
+      STLOG_HAL_W("%s - mHalWrapperState = HAL_WRAPPER_STATE_RECOVERY",
+                  __func__);
       break;
   }
 }
@@ -940,6 +942,31 @@ static void halWrapperCallback(uint8_t event,
           mHalWrapperDataCallback(data_len, p_data);
           mHalWrapperState = HAL_WRAPPER_STATE_RECOVERY;
         }
+        return;
+      }
+      break;
+
+    case HAL_WRAPPER_STATE_EXIT_HIBERNATE_INTERNAL:
+      if (event == HAL_WRAPPER_TIMEOUT_EVT) {
+        STLOG_HAL_E("NFC-NCI HAL: %s  Timeout at state: %s", __func__,
+                    hal_wrapper_state_to_str(mHalWrapperState).c_str());
+        HalEventLogger::getInstance().log()
+            << __func__ << " Timer when sending conf parameters, retry"
+            << " mHalWrapperState="
+            << hal_wrapper_state_to_str(mHalWrapperState)
+            << " mIsActiveRW=" << mIsActiveRW
+            << " mTimerStarted=" << mTimerStarted << std::endl;
+        HalEventLogger::getInstance().store_log();
+        HalSendDownstreamStopTimer(mHalHandle);
+        p_data[0] = 0x60;
+        p_data[1] = 0x00;
+        p_data[2] = 0x03;
+        p_data[3] = 0xAB;
+        p_data[4] = 0x00;
+        p_data[5] = 0x00;
+        data_len = 0x6;
+        mHalWrapperDataCallback(data_len, p_data);
+        mHalWrapperState = HAL_WRAPPER_STATE_OPEN;
         return;
       }
       break;
