@@ -127,8 +127,8 @@ void HalEventLogger::dump_log(int fd) {
     oss << ss.str();
   }
 
-  dprintf(fd, "===== Nfc HAL Event Log =====\n");
+  dprintf(fd, "===== Nfc HAL Event Log v1 =====\n");
   ::android::base::WriteStringToFd(oss.str(), fd);
-  dprintf(fd, "===== Nfc HAL Event Log =====\n");
+  dprintf(fd, "===== Nfc HAL Event Log v1 =====\n");
   fsync(fd);
 }

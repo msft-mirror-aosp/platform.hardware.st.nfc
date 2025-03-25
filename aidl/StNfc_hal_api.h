@@ -66,5 +66,7 @@ void StNfc_hal_setLogging(bool enable);
 bool StNfc_hal_isLoggingEnabled();
 
 void StNfc_hal_dump(int fd);
+uint16_t
+iso14443_crc(const uint8_t *data, size_t szLen, int type);
 
 #endif /* _STNFC_HAL_API_H_ */

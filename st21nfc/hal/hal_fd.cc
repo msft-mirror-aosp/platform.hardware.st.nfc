@@ -433,7 +433,9 @@ uint8_t ft_cmd_HwReset(uint8_t* pdata, uint8_t* clf_mode) {
       (mFWInfo->chipHwVersion == HW_ST54L)) {
     if ((mFwFileBin != NULL) &&
         (mFWInfo->fileFwVersion != mFWInfo->chipFwVersion)) {
-      STLOG_HAL_D("---> Firmware update needed\n");
+      STLOG_HAL_D("---> Firmware update needed from 0x%08X to 0x%08X\n",
+                  mFWInfo->chipFwVersion, mFWInfo->fileFwVersion);
+
       result |= FW_UPDATE_NEEDED;
     } else {
       STLOG_HAL_D("---> No Firmware update needed\n");
@@ -442,8 +444,9 @@ uint8_t ft_cmd_HwReset(uint8_t* pdata, uint8_t* clf_mode) {
     if ((mFWInfo->fileCustVersion != 0) &&
         (mFWInfo->chipCustVersion != mFWInfo->fileCustVersion)) {
       STLOG_HAL_D(
-          "%s - Need to apply new st21nfc custom configuration settings\n",
-          __func__);
+          "%s - Need to apply new st21nfc custom configuration settings from "
+          "0x%04X to 0x%04X\n",
+          __func__, mFWInfo->chipCustVersion, mFWInfo->fileCustVersion);
       if (!mCustomParamFailed) result |= CONF_UPDATE_NEEDED;
     } else {
       STLOG_HAL_D("%s - No need to apply custom configuration settings\n",
@@ -466,6 +469,12 @@ uint8_t ft_cmd_HwReset(uint8_t* pdata, uint8_t* clf_mode) {
     mFWCap->ObserveMode = 0x2;
   } else {
     mFWCap->ObserveMode = 0x1;
+  }
+  if (hal_fd_getFwInfo()->chipHwVersion == HW_ST54L &&
+      (FWVersionMajor >= 0x2) && (FWVersionMinor >= 0x6)) {
+    mFWCap->ExitFrameSupport = 0x1;
+  } else {
+    mFWCap->ExitFrameSupport = 0x0;
   }
   return result;
 } /* ft_cmd_HwReset */

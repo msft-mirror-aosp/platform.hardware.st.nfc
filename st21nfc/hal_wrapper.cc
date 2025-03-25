@@ -83,6 +83,7 @@ uint8_t mObserverMode = 0;
 bool mObserverRsp = false;
 bool mPerTechCmdRsp = false;
 bool storedLog = false;
+bool mObserveModeSuspended = false;
 
 void wait_ready() {
   pthread_mutex_lock(&mutex);
@@ -117,6 +118,7 @@ bool hal_wrapper_open(st21nfc_dev_t* dev, nfc_stack_callback_t* p_cback,
 
   mObserverMode = 0;
   mObserverRsp = false;
+  mObserveModeSuspended = false;
 
   mHalWrapperCallback = p_cback;
   mHalWrapperDataCallback = p_data_cback;
@@ -215,6 +217,7 @@ void hal_wrapper_set_observer_mode(uint8_t enable, bool per_tech_cmd) {
   mObserverMode = enable;
   mObserverRsp = true;
   mPerTechCmdRsp = per_tech_cmd;
+  mObserveModeSuspended = false;
 }
 void hal_wrapper_get_observer_mode() { mObserverRsp = true; }
 
@@ -559,7 +562,11 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
               STLOG_HAL_E("mObserverMode got out of sync");
               mObserverMode = p_data[4];
             }
+            if (!mObserveModeSuspended) {
             p_data[5] = p_data[4];
+            } else {
+              p_data[5] =  0x00;
+            }
           } else {
             if (p_data[7] != mObserverMode) {
               STLOG_HAL_E("mObserverMode got out of sync");
@@ -573,6 +580,7 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
           p_data[3] = 0x04;
           p_data[4] = rsp_status;
           data_len = 0x6;
+          DispHal("RX DATA", (p_data), data_len);
         }
       }
 
@@ -586,7 +594,13 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
         DispHal("RX DATA", (p_data), data_len);
       } else if ((p_data[0] == 0x6f) && (p_data[1] == 0x1b)) {
         // PROP_RF_OBSERVE_MODE_SUSPENDED_NTF
+        mObserveModeSuspended = true;
+        // Remove two byte CRC at end of frame.
+        data_len -= 2;
+        p_data[2] -= 2;
+        p_data[4] -= 2;
         memcpy(nciAndroidPassiveObserver, p_data + 3, data_len - 3);
+
         p_data[0] = 0x6f;
         p_data[1] = 0x0c;
         p_data[2] = p_data[2] + 1;
@@ -596,11 +610,23 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
         DispHal("RX DATA", (p_data), data_len);
       } else if ((p_data[0] == 0x6f) && (p_data[1] == 0x1c)) {
         // PROP_RF_OBSERVE_MODE_RESUMED_NTF
+        mObserveModeSuspended = false;
+
         p_data[0] = 0x6f;
         p_data[1] = 0x0c;
         p_data[2] = p_data[2] + 1;
         p_data[3] = 0xC;
         data_len = data_len + 1;
+        DispHal("RX DATA", (p_data), data_len);
+      } else if ((p_data[0] == 0x4f) && (p_data[1] == 0x1d)) {
+        // PROP_RF_SET_CUST_PASSIVE_POLL_FRAME_RSP
+        memcpy(nciAndroidPassiveObserver, p_data + 3, data_len - 3);
+        p_data[4] = p_data[3];
+        p_data[0] = 0x4f;
+        p_data[1] = 0x0c;
+        p_data[2] = 0x02;
+        p_data[3] = 0x09;
+        data_len = 0x5;
         DispHal("RX DATA", (p_data), data_len);
       }
 
@@ -793,6 +819,8 @@ void halWrapperDataCallback(uint16_t data_len, uint8_t* p_data) {
       }
       break;
     case HAL_WRAPPER_STATE_RECOVERY:
+      STLOG_HAL_W("%s - mHalWrapperState = HAL_WRAPPER_STATE_RECOVERY",
+                  __func__);
       break;
   }
 }
@@ -915,6 +943,31 @@ static void halWrapperCallback(uint8_t event,
           mHalWrapperDataCallback(data_len, p_data);
           mHalWrapperState = HAL_WRAPPER_STATE_RECOVERY;
         }
+        return;
+      }
+      break;
+
+    case HAL_WRAPPER_STATE_EXIT_HIBERNATE_INTERNAL:
+      if (event == HAL_WRAPPER_TIMEOUT_EVT) {
+        STLOG_HAL_E("NFC-NCI HAL: %s  Timeout at state: %s", __func__,
+                    hal_wrapper_state_to_str(mHalWrapperState).c_str());
+        HalEventLogger::getInstance().log()
+            << __func__ << " Timer when sending conf parameters, retry"
+            << " mHalWrapperState="
+            << hal_wrapper_state_to_str(mHalWrapperState)
+            << " mIsActiveRW=" << mIsActiveRW
+            << " mTimerStarted=" << mTimerStarted << std::endl;
+        HalEventLogger::getInstance().store_log();
+        HalSendDownstreamStopTimer(mHalHandle);
+        p_data[0] = 0x60;
+        p_data[1] = 0x00;
+        p_data[2] = 0x03;
+        p_data[3] = 0xAB;
+        p_data[4] = 0x00;
+        p_data[5] = 0x00;
+        data_len = 0x6;
+        mHalWrapperDataCallback(data_len, p_data);
+        mHalWrapperState = HAL_WRAPPER_STATE_OPEN;
         return;
       }
       break;
